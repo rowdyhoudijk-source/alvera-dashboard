@@ -10,16 +10,17 @@ export default async function handler(req, res) {
   const { shop, token, endpoint } = req.query;
 
   if (!shop || !token || !endpoint) {
-    return res.status(400).json({ error: 'Missing parameters: shop, token, endpoint required' });
+    return res.status(400).json({ error: 'Missing: shop, token, endpoint' });
   }
 
   try {
-    const apiUrl = `https://${shop}.myshopify.com/admin/api/2024-10/${endpoint}`;
+    const apiUrl = `https://${shop}.myshopify.com/admin/api/2025-10/${endpoint}`;
     
     const apiRes = await fetch(apiUrl, {
       headers: { 
         'X-Shopify-Access-Token': token,
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       }
     });
 
@@ -29,11 +30,15 @@ export default async function handler(req, res) {
     try {
       apiData = JSON.parse(apiText);
     } catch(e) {
-      return res.status(500).json({ error: `Parse fout: ${apiText.substring(0, 300)}` });
+      return res.status(500).json({ error: `Parse fout (${apiRes.status}): ${apiText.substring(0, 500)}` });
     }
 
     if (!apiRes.ok) {
-      return res.status(apiRes.status).json({ error: `API fout ${apiRes.status}`, details: apiData });
+      return res.status(apiRes.status).json({ 
+        error: `Shopify API fout ${apiRes.status}`, 
+        details: apiData,
+        url: apiUrl
+      });
     }
 
     return res.status(200).json(apiData);
