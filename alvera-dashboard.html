@@ -167,9 +167,9 @@ tbody tr:hover { background:#fafafa; }
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section">Overzicht</div>
-    <div class="nav-item active" onclick="scrollToTop(this)"><span class="icon">📊</span> Finance</div>
-    <div class="nav-item" onclick="scrollTo('ordersCard',this)"><span class="icon">🛍️</span> Bestellingen</div>
-    <div class="nav-item" onclick="scrollTo('cogsCard',this)"><span class="icon">📦</span> COGS</div>
+    <div class="nav-item active" onclick="showPage('finance',this)"><span class="icon">📊</span> Finance</div>
+    <div class="nav-item" onclick="showPage('orders',this)"><span class="icon">🛍️</span> Bestellingen</div>
+    <div class="nav-item" onclick="showPage('cogs',this)"><span class="icon">📦</span> COGS</div>
     <div class="nav-section">Integraties</div>
     <div class="nav-item" onclick="showMetaSetup()">
       <span class="icon">📣</span> Meta Ads
@@ -193,11 +193,20 @@ tbody tr:hover { background:#fafafa; }
       <span class="page-sub" id="pageSubtitle"></span>
     </div>
     <div class="topbar-right">
-      <div class="period-group">
+      <div class="period-group" id="periodGroup">
         <button class="period-btn active" onclick="setPeriod('today',this)">Vandaag</button>
+        <button class="period-btn" onclick="setPeriod('yesterday',this)">Gisteren</button>
         <button class="period-btn" onclick="setPeriod('week',this)">7 dagen</button>
         <button class="period-btn" onclick="setPeriod('month',this)">30 dagen</button>
         <button class="period-btn" onclick="setPeriod('year',this)">Dit jaar</button>
+        <button class="period-btn" onclick="toggleDatePicker(this)" id="customDateBtn">📅 Aangepast</button>
+      </div>
+      <div id="datePicker" style="display:none;align-items:center;gap:8px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:6px 12px;">
+        <label style="font-size:12px;color:var(--muted)">Van</label>
+        <input type="date" id="dateFrom" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--font);font-size:12px;outline:none;cursor:pointer">
+        <label style="font-size:12px;color:var(--muted)">Tot</label>
+        <input type="date" id="dateTo" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--font);font-size:12px;outline:none;cursor:pointer">
+        <button class="btn-primary" onclick="applyCustomDate()" style="padding:5px 12px;font-size:12px">Toepassen</button>
       </div>
       <button class="btn-primary" id="syncBtn" onclick="loadDashboard()">↻ Sync</button>
     </div>
@@ -234,73 +243,86 @@ tbody tr:hover { background:#fafafa; }
           <button class="btn-white" onclick="showMetaSetup()">Meta koppelen →</button>
         </div>
 
-        <div class="kpi-row fade-in">
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Netto omzet</div><div class="kpi-icon green">💶</div></div>
-            <div class="kpi-value" id="kpiRevenue">€0</div>
-            <div class="kpi-meta"><span class="kpi-change neutral" id="kpiRevenueOrders">0 orders</span></div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Bestellingen</div><div class="kpi-icon blue">🛍️</div></div>
-            <div class="kpi-value" id="kpiOrders">0</div>
-            <div class="kpi-meta"><span class="kpi-sub-text" id="kpiAov">Gem. €0</span></div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Brutowinst</div><div class="kpi-icon green">📈</div></div>
-            <div class="kpi-value" id="kpiProfit">€0</div>
-            <div class="kpi-meta"><span class="kpi-change neutral" id="kpiMargin">0% marge</span></div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">COGS totaal</div><div class="kpi-icon orange">📦</div></div>
-            <div class="kpi-value" id="kpiCogs">€0</div>
-            <div class="kpi-meta"><span class="kpi-sub-text">Inkoopkosten</span></div>
-          </div>
-        </div>
-
-        <div class="kpi-row fade-in" id="kpiRowMeta" style="display:none">
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Ad Spend (Meta)</div><div class="kpi-icon red">📣</div></div>
-            <div class="kpi-value" id="kpiAdSpend">€0</div>
-            <div class="kpi-meta"><span class="kpi-sub-text">Facebook + Instagram</span></div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">ROAS</div><div class="kpi-icon green">🎯</div></div>
-            <div class="kpi-value" id="kpiRoas">0x</div>
-            <div class="kpi-meta"><span class="kpi-sub-text">Omzet / Ad Spend</span></div>
-          </div>
-          <div class="kpi-card" style="grid-column:span 2">
-            <div class="kpi-header"><div class="kpi-label">Netto winst (na ads + COGS)</div><div class="kpi-icon green">💰</div></div>
-            <div class="kpi-value" id="kpiNetProfit">€0</div>
-            <div class="kpi-meta"><span class="kpi-change neutral" id="kpiNetMargin">0% netto marge</span></div>
-          </div>
-        </div>
-
-        <div class="grid-3 fade-in">
-          <div class="card">
-            <div class="section-header">
-              <div><div class="section-title">Omzet trend</div><div class="section-sub" id="chartSubtitle">Per dag</div></div>
+        <!-- FINANCE PAGINA -->
+        <div id="pagefinance">
+          <div class="kpi-row fade-in">
+            <div class="kpi-card">
+              <div class="kpi-header"><div class="kpi-label">Netto omzet</div><div class="kpi-icon green">💶</div></div>
+              <div class="kpi-value" id="kpiRevenue">€0</div>
+              <div class="kpi-meta"><span class="kpi-change neutral" id="kpiRevenueOrders">0 orders</span></div>
             </div>
-            <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+            <div class="kpi-card">
+              <div class="kpi-header"><div class="kpi-label">Bestellingen</div><div class="kpi-icon blue">🛍️</div></div>
+              <div class="kpi-value" id="kpiOrders">0</div>
+              <div class="kpi-meta"><span class="kpi-sub-text" id="kpiAov">Gem. €0</span></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-header"><div class="kpi-label">Brutowinst</div><div class="kpi-icon green">📈</div></div>
+              <div class="kpi-value" id="kpiProfit">€0</div>
+              <div class="kpi-meta"><span class="kpi-change neutral" id="kpiMargin">0% marge</span></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-header"><div class="kpi-label">COGS totaal</div><div class="kpi-icon orange">📦</div></div>
+              <div class="kpi-value" id="kpiCogs">€0</div>
+              <div class="kpi-meta"><span class="kpi-sub-text">Inkoopkosten</span></div>
+            </div>
           </div>
-          <div class="card">
-            <div class="section-header"><div class="section-title">Winstoverzicht</div></div>
-            <div id="profitBreakdown"></div>
+
+          <div class="kpi-row fade-in" id="kpiRowMeta" style="display:none">
+            <div class="kpi-card">
+              <div class="kpi-header"><div class="kpi-label">Ad Spend (Meta)</div><div class="kpi-icon red">📣</div></div>
+              <div class="kpi-value" id="kpiAdSpend">€0</div>
+              <div class="kpi-meta"><span class="kpi-sub-text">Facebook + Instagram</span></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-header"><div class="kpi-label">ROAS</div><div class="kpi-icon green">🎯</div></div>
+              <div class="kpi-value" id="kpiRoas">0x</div>
+              <div class="kpi-meta"><span class="kpi-sub-text">Omzet / Ad Spend</span></div>
+            </div>
+            <div class="kpi-card" style="grid-column:span 2">
+              <div class="kpi-header"><div class="kpi-label">Netto winst (na ads + COGS)</div><div class="kpi-icon green">💰</div></div>
+              <div class="kpi-value" id="kpiNetProfit">€0</div>
+              <div class="kpi-meta"><span class="kpi-change neutral" id="kpiNetMargin">0% netto marge</span></div>
+            </div>
+          </div>
+
+          <div class="grid-3 fade-in">
+            <div class="card">
+              <div class="section-header">
+                <div><div class="section-title">Omzet trend</div><div class="section-sub" id="chartSubtitle">Per dag</div></div>
+              </div>
+              <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="section-header"><div class="section-title">Winstoverzicht</div></div>
+              <div id="profitBreakdown"></div>
+            </div>
           </div>
         </div>
 
-        <div class="card fade-in" id="ordersCard" style="margin-bottom:20px">
-          <div class="section-header">
-            <div><div class="section-title">Recente bestellingen</div><div class="section-sub" id="ordersSubtitle">—</div></div>
+        <!-- BESTELLINGEN PAGINA -->
+        <div id="pageorders" style="display:none">
+          <div class="card fade-in">
+            <div class="section-header">
+              <div><div class="section-title">Bestellingen</div><div class="section-sub" id="ordersSubtitle">—</div></div>
+              <input type="text" class="form-input" id="ordersSearch" placeholder="🔍 Zoek op ordernummer..." style="width:220px;padding:7px 12px;font-size:12px" oninput="filterOrders()">
+            </div>
+            <div class="table-wrap" id="ordersTableWrap"></div>
           </div>
-          <div class="table-wrap" id="ordersTableWrap"></div>
         </div>
 
-        <div class="card fade-in" id="cogsCard">
-          <div class="section-header">
-            <div><div class="section-title">COGS per product</div><div class="section-sub">Vul de inkoopprijs per product in voor automatische winstberekening</div></div>
-            <button class="btn-primary" onclick="saveCogs()" style="font-size:12px;padding:7px 14px">Opslaan</button>
+        <!-- COGS PAGINA -->
+        <div id="pagecogs" style="display:none">
+          <div class="card fade-in">
+            <div class="section-header">
+              <div><div class="section-title">COGS per product</div><div class="section-sub">Vul de inkoopprijs per product in</div></div>
+              <div style="display:flex;gap:10px;align-items:center">
+                <input type="text" class="form-input" id="cogsSearch" placeholder="🔍 Zoek product..." style="width:200px;padding:7px 12px;font-size:12px" oninput="filterCogs()">
+                <button class="btn-primary" onclick="saveCogs()" style="font-size:12px;padding:7px 14px">Opslaan</button>
+              </div>
+            </div>
+            <div id="cogsTableWrap"></div>
           </div>
-          <div id="cogsTableWrap"></div>
         </div>
 
       </div>
@@ -331,14 +353,61 @@ tbody tr:hover { background:#fafafa; }
 <div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:white;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;box-shadow:var(--shadow-md)"></div>
 
 <script>
-let config={}, cogsData={}, ordersData=[], productsData=[], currentPeriod='today', accessToken=null, tokenExpiry=0, revenueChart=null;
+let config={}, cogsData={}, ordersData=[], productsData=[], currentPeriod='today', revenueChart=null, customDateRange=null;
 
 function loadConfig(){try{const c=localStorage.getItem('av_config');if(c)config=JSON.parse(c);const g=localStorage.getItem('av_cogs');if(g)cogsData=JSON.parse(g);}catch(e){}}
 function saveConfigStorage(){localStorage.setItem('av_config',JSON.stringify(config));}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2200);}
 
-function scrollToTop(el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
-function scrollTo(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
+function showPage(page, el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('pagefinance').style.display = page==='finance' ? 'block' : 'none';
+  document.getElementById('pageorders').style.display = page==='orders' ? 'block' : 'none';
+  document.getElementById('pagecogs').style.display = page==='cogs' ? 'block' : 'none';
+  document.getElementById('periodGroup').style.display = page==='cogs' ? 'none' : 'flex';
+  const titles = {finance:'Finance Overzicht', orders:'Bestellingen', cogs:'COGS Beheer'};
+  document.getElementById('pageTitle').textContent = titles[page];
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleDatePicker(btn){
+  const picker=document.getElementById('datePicker');
+  const isOpen=picker.style.display==='flex';
+  picker.style.display=isOpen?'none':'flex';
+  if(!isOpen){
+    // Stel standaard datum in op vandaag
+    const today=new Date().toISOString().split('T')[0];
+    document.getElementById('dateFrom').value=today;
+    document.getElementById('dateTo').value=today;
+  }
+}
+
+function applyCustomDate(){
+  const from=document.getElementById('dateFrom').value;
+  const to=document.getElementById('dateTo').value;
+  if(!from||!to){showToast('Selecteer een begin- en einddatum');return;}
+  currentPeriod='custom';
+  customDateRange={
+    start:new Date(from+'T00:00:00'),
+    end:new Date(to+'T23:59:59')
+  };
+  document.getElementById('datePicker').style.display='none';
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('customDateBtn').classList.add('active');
+  const fmt=d=>d.toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('pageSubtitle').textContent=`— ${fmt(customDateRange.start)} t/m ${fmt(customDateRange.end)}`;
+  loadDashboard();
+}
+  const q=document.getElementById('ordersSearch').value.toLowerCase();
+  renderOrdersTable(ordersData.filter(o=>o.name.toLowerCase().includes(q)));
+}
+
+function filterCogs(){
+  const q=document.getElementById('cogsSearch').value.toLowerCase();
+  const filtered=productsData.filter(p=>p.title.toLowerCase().includes(q));
+  renderCogsTable(filtered);
+}
 
 function startOAuth(){
   const domain=document.getElementById('shopDomain').value.trim().replace('.myshopify.com','');
@@ -413,10 +482,14 @@ async function fetchProducts(){
 }
 
 function getPeriodDates(period){
+  if(period==='custom' && customDateRange) return customDateRange;
   const now=new Date();
   let start=new Date(now);start.setHours(0,0,0,0);
   let end=new Date(now);end.setHours(23,59,59,999);
-  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-6);start.setHours(0,0,0,0);}
+  if(period==='yesterday'){
+    start=new Date(now);start.setDate(now.getDate()-1);start.setHours(0,0,0,0);
+    end=new Date(now);end.setDate(now.getDate()-1);end.setHours(23,59,59,999);
+  } else if(period==='week'){start=new Date(now);start.setDate(now.getDate()-6);start.setHours(0,0,0,0);}
   else if(period==='month'){start=new Date(now);start.setDate(now.getDate()-29);start.setHours(0,0,0,0);}
   else if(period==='year'){start=new Date(now.getFullYear(),0,1);}
   return{start,end};
@@ -440,7 +513,7 @@ async function loadDashboard(){
   document.getElementById('syncBtn').disabled=true;
   document.getElementById('sidebarDot').className='sync-dot syncing';
   document.getElementById('sidebarSync').textContent='Synchroniseren...';
-  const labels={'today':'Vandaag','week':'Afgelopen 7 dagen','month':'Afgelopen 30 dagen','year':'Dit jaar'};
+  const labels={'today':'Vandaag','yesterday':'Gisteren','week':'Afgelopen 7 dagen','month':'Afgelopen 30 dagen','year':'Dit jaar'};
   document.getElementById('pageSubtitle').textContent='— '+labels[currentPeriod];
   try{
     const{start,end}=getPeriodDates(currentPeriod);
@@ -481,9 +554,9 @@ function renderDashboard(orders,products,start,end){
   else{document.getElementById('metaBanner').style.display='flex';document.getElementById('kpiRowMeta').style.display='none';}
   renderChart(orders,start,end);
   renderBreakdown(revenue,totalCogs,profit);
-  renderOrdersTable(orders.slice(0,20));
+  renderOrdersTable(ordersData.slice(0,250));
   document.getElementById('ordersSubtitle').textContent=orders.length+' bestellingen in periode';
-  renderCogsTable(products);
+  renderCogsTable(productsData);
 }
 
 function renderChart(orders,start,end){
