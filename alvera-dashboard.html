@@ -369,22 +369,15 @@ function resetConfig(){
   document.getElementById('setupError').style.display='none';
 }
 
-async function getAccessToken(){
-  if(accessToken&&Date.now()<tokenExpiry)return accessToken;
-  const shop=`${config.domain}.myshopify.com`;
-  const body=new URLSearchParams({client_id:config.clientId,client_secret:config.clientSecret,grant_type:'client_credentials'});
-  const resp=await fetch(`https://${shop}/admin/oauth/access_token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()});
-  if(!resp.ok){const txt=await resp.text();throw new Error(`Authenticatie mislukt (${resp.status}): ${txt}`);}
-  const data=await resp.json();
-  accessToken=data.access_token;
-  tokenExpiry=Date.now()+((data.expires_in||3600)*1000)-60000;
-  return accessToken;
-}
-
 async function shopifyFetch(path){
-  const token=await getAccessToken();
-  const resp=await fetch(`https://${config.domain}.myshopify.com/admin/api/2026-04/${path}`,{headers:{'X-Shopify-Access-Token':token}});
-  if(!resp.ok)throw new Error(`API fout ${resp.status}`);
+  const params=new URLSearchParams({
+    shop: config.domain,
+    clientId: config.clientId,
+    clientSecret: config.clientSecret,
+    endpoint: path
+  });
+  const resp=await fetch(`/api/shopify?${params}`);
+  if(!resp.ok){const d=await resp.json();throw new Error(d.error||`API fout ${resp.status}`);}
   return resp.json();
 }
 
