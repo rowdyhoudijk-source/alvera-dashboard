@@ -217,9 +217,12 @@ tbody tr:hover { background:#fafafa; }
           <div class="form-hint">Alleen de naam vóór .myshopify.com</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Admin API Access Token</label>
-          <input class="form-input" id="accessToken" type="password" placeholder="shpat_..." />
-          <div class="form-hint">Begint met shpat_ — te vinden in Shopify Admin → Apps → App-ontwikkeling</div>
+          <label class="form-label">Client ID (Klant-ID)</label>
+          <input class="form-input" id="clientId" placeholder="3f9ac8fda4f450d..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Client Secret (Geheim)</label>
+          <input class="form-input" id="clientSecret" type="password" placeholder="shpss_..." />
         </div>
         <button class="btn-primary" onclick="saveConfig()" style="width:100%;justify-content:center;padding:11px">Verbinding maken →</button>
       </div>
@@ -347,9 +350,10 @@ function scrollTo(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.cla
 
 function saveConfig(){
   const domain=document.getElementById('shopDomain').value.trim().replace('.myshopify.com','');
-  const accessToken=document.getElementById('accessToken').value.trim();
-  if(!domain||!accessToken){const e=document.getElementById('setupError');e.textContent='Vul alle velden in.';e.style.display='flex';return;}
-  config={...config,domain,accessToken};
+  const clientId=document.getElementById('clientId').value.trim();
+  const clientSecret=document.getElementById('clientSecret').value.trim();
+  if(!domain||!clientId||!clientSecret){const e=document.getElementById('setupError');e.textContent='Vul alle velden in.';e.style.display='flex';return;}
+  config={...config,domain,clientId,clientSecret};
   saveConfigStorage();
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('dashboardScreen').style.display='block';
@@ -360,30 +364,52 @@ function resetConfig(){
   document.getElementById('dashboardScreen').style.display='none';
   document.getElementById('setupScreen').style.display='block';
   document.getElementById('shopDomain').value=config.domain||'';
-  document.getElementById('accessToken').value=config.accessToken||'';
+  document.getElementById('clientId').value=config.clientId||'';
+  document.getElementById('clientSecret').value=config.clientSecret||'';
   document.getElementById('setupError').style.display='none';
 }
 
-async function shopifyFetch(path){
+async function shopifyQuery(type, extra={}) {
   const params=new URLSearchParams({
     shop: config.domain,
-    token: config.accessToken,
-    endpoint: path
+    clientId: config.clientId,
+    clientSecret: config.clientSecret,
+    type,
+    ...extra
   });
   const resp=await fetch(`/api/shopify?${params}`);
-  if(!resp.ok){const d=await resp.json().catch(()=>({}));throw new Error(d.error||`API fout ${resp.status}`);}
-  return resp.json();
+  const d=await resp.json().catch(()=>({}));
+  if(!resp.ok) throw new Error(d.error||`API fout ${resp.status}`);
+  return d;
 }
 
 async function fetchOrders(start,end){
-  const p=new URLSearchParams({created_at_min:start.toISOString(),created_at_max:end.toISOString(),status:'any',limit:250,fields:'id,name,created_at,total_price,financial_status,line_items'});
-  const data=await shopifyFetch(`orders.json?${p}`);
-  return data.orders||[];
+  const data=await shopifyQuery('orders', { since: start.toISOString().split('T')[0] });
+  const orders=(data.orders?.edges||[]).map(e=>e.node);
+  // Filter by date range
+  return orders.filter(o=>{
+    const d=new Date(o.createdAt);
+    return d>=start && d<=end;
+  }).map(o=>({
+    id: o.id,
+    name: o.name,
+    created_at: o.createdAt,
+    financial_status: o.displayFinancialStatus?.toLowerCase(),
+    total_price: o.totalPriceSet?.shopMoney?.amount||'0',
+    line_items: (o.lineItems?.edges||[]).map(e=>({
+      quantity: e.node.quantity,
+      product_id: e.node.product?.id?.split('/').pop(),
+    }))
+  }));
 }
 
 async function fetchProducts(){
-  const data=await shopifyFetch('products.json?limit=250&fields=id,title,variants');
-  return data.products||[];
+  const data=await shopifyQuery('products');
+  return (data.products?.edges||[]).map(e=>({
+    id: e.node.id?.split('/').pop(),
+    title: e.node.title,
+    variants: e.node.variants?.edges||[]
+  }));
 }
 
 function getPeriodDates(period){
@@ -551,14 +577,14 @@ async function loadMetaData(revenue,grossProfit){
 }
 
 loadConfig();
-if(config.domain&&config.accessToken){
+if(config.domain&&config.clientId&&config.clientSecret){
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('dashboardScreen').style.display='block';
   loadDashboard();
 }else{
   document.getElementById('setupScreen').style.display='block';
   if(config.domain)document.getElementById('shopDomain').value=config.domain;
-  if(config.accessToken)document.getElementById('accessToken').value=config.accessToken;
+  if(config.clientId)document.getElementById('clientId').value=config.clientId;
 }
 </script>
 </body>
