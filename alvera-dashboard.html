@@ -343,7 +343,7 @@ function scrollTo(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.cla
 function startOAuth(){
   const domain=document.getElementById('shopDomain').value.trim().replace('.myshopify.com','');
   if(!domain){const e=document.getElementById('setupError');e.textContent='Vul je winkel naam in.';e.style.display='flex';return;}
-  const clientId='3f9ac8fda4f450d36ae62282d6187528';
+  const clientId='c140876fa195a970006cbcb9b1540974';
   const redirectUri=encodeURIComponent(window.location.origin+'/api/callback');
   window.location.href=`/api/auth?shop=${domain}&clientId=${clientId}&redirectUri=${decodeURIComponent(redirectUri)}`;
 }
