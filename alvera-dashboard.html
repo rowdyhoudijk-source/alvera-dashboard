@@ -209,22 +209,14 @@ tbody tr:hover { background:#fafafa; }
       <div class="setup-card">
         <div class="setup-badge">🔗 Shopify Koppeling</div>
         <div class="setup-title">Verbinding instellen</div>
-        <p class="setup-sub">Voer je Shopify API-gegevens in. Alles wordt lokaal opgeslagen in je browser — nergens anders.</p>
+        <p class="setup-sub">Vul je winkel naam in en klik op verbinden. Je wordt doorgestuurd naar Shopify om toegang te geven — precies zoals andere apps.</p>
         <div id="setupError" class="alert alert-error" style="display:none"></div>
         <div class="form-group">
           <label class="form-label">Winkel naam</label>
           <input class="form-input" id="shopDomain" placeholder="alvera-valencia" />
           <div class="form-hint">Alleen de naam vóór .myshopify.com</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Client ID (Klant-ID)</label>
-          <input class="form-input" id="clientId" placeholder="3f9ac8fda4f450d..." />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Client Secret (Geheim)</label>
-          <input class="form-input" id="clientSecret" type="password" placeholder="shpss_..." />
-        </div>
-        <button class="btn-primary" onclick="saveConfig()" style="width:100%;justify-content:center;padding:11px">Verbinding maken →</button>
+        <button class="btn-primary" onclick="startOAuth()" style="width:100%;justify-content:center;padding:11px">Verbinden via Shopify →</button>
       </div>
     </div>
 
@@ -348,32 +340,40 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 function scrollToTop(el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
 function scrollTo(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
 
-function saveConfig(){
+function startOAuth(){
   const domain=document.getElementById('shopDomain').value.trim().replace('.myshopify.com','');
-  const clientId=document.getElementById('clientId').value.trim();
-  const clientSecret=document.getElementById('clientSecret').value.trim();
-  if(!domain||!clientId||!clientSecret){const e=document.getElementById('setupError');e.textContent='Vul alle velden in.';e.style.display='flex';return;}
-  config={...config,domain,clientId,clientSecret};
-  saveConfigStorage();
-  document.getElementById('setupScreen').style.display='none';
-  document.getElementById('dashboardScreen').style.display='block';
-  loadDashboard();
+  if(!domain){const e=document.getElementById('setupError');e.textContent='Vul je winkel naam in.';e.style.display='flex';return;}
+  const clientId='3f9ac8fda4f450d36ae62282d6187528';
+  const redirectUri=encodeURIComponent(window.location.origin+'/api/callback');
+  window.location.href=`/api/auth?shop=${domain}&clientId=${clientId}&redirectUri=${decodeURIComponent(redirectUri)}`;
+}
+
+function saveConfig(){
+  // Wordt aangeroepen na OAuth callback via URL params
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get('token');
+  const shop=params.get('shop');
+  if(token&&shop){
+    config={...config, domain:shop, accessToken:token};
+    saveConfigStorage();
+    // Verwijder token uit URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 }
 
 function resetConfig(){
+  config={...config, accessToken:null};
+  saveConfigStorage();
   document.getElementById('dashboardScreen').style.display='none';
   document.getElementById('setupScreen').style.display='block';
   document.getElementById('shopDomain').value=config.domain||'';
-  document.getElementById('clientId').value=config.clientId||'';
-  document.getElementById('clientSecret').value=config.clientSecret||'';
   document.getElementById('setupError').style.display='none';
 }
 
 async function shopifyQuery(type, extra={}) {
   const params=new URLSearchParams({
     shop: config.domain,
-    clientId: config.clientId,
-    clientSecret: config.clientSecret,
+    token: config.accessToken,
     type,
     ...extra
   });
@@ -577,14 +577,20 @@ async function loadMetaData(revenue,grossProfit){
 }
 
 loadConfig();
-if(config.domain&&config.clientId&&config.clientSecret){
+// Check of we terugkomen van OAuth callback
+const urlParams=new URLSearchParams(window.location.search);
+if(urlParams.get('token')&&urlParams.get('shop')){
+  saveConfig();
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('dashboardScreen').style.display='block';
+  loadDashboard();
+} else if(config.domain&&config.accessToken){
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('dashboardScreen').style.display='block';
   loadDashboard();
 }else{
   document.getElementById('setupScreen').style.display='block';
   if(config.domain)document.getElementById('shopDomain').value=config.domain;
-  if(config.clientId)document.getElementById('clientId').value=config.clientId;
 }
 </script>
 </body>
