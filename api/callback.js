@@ -1,7 +1,5 @@
-// Stap 2: Shopify stuurt gebruiker terug met een code
-// Wij wisselen die code in voor een echte access token
 export default async function handler(req, res) {
-  const { shop, code, state } = req.query;
+  const { shop, code } = req.query;
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
 
@@ -10,7 +8,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Wissel code in voor access token
     const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,8 +24,8 @@ export default async function handler(req, res) {
       return res.status(400).send('Token ophalen mislukt: ' + JSON.stringify(tokenData));
     }
 
-    // Stuur gebruiker terug naar dashboard met token in URL
-    const dashboardUrl = `/alvera-dashboard.html?token=${tokenData.access_token}&shop=${shop.replace('.myshopify.com', '')}`;
+    const shopName = shop.replace('.myshopify.com', '');
+    const dashboardUrl = `/alvera-dashboard.html?token=${tokenData.access_token}&shop=${shopName}`;
     res.redirect(dashboardUrl);
 
   } catch (err) {
