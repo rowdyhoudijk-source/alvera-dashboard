@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiUrl = `https://${shop}.myshopify.com/admin/api/2026-04/${endpoint}`;
+    const apiUrl = `https://${shop}.myshopify.com/admin/api/2024-10/${endpoint}`;
     
     const apiRes = await fetch(apiUrl, {
       headers: { 
