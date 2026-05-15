@@ -217,12 +217,9 @@ tbody tr:hover { background:#fafafa; }
           <div class="form-hint">Alleen de naam vóór .myshopify.com</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Client ID (Klant-ID)</label>
-          <input class="form-input" id="clientId" placeholder="3f9ac8fda4f450d..." />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Client Secret (Geheim)</label>
-          <input class="form-input" id="clientSecret" type="password" placeholder="shpss_..." />
+          <label class="form-label">Admin API Access Token</label>
+          <input class="form-input" id="accessToken" type="password" placeholder="shpat_..." />
+          <div class="form-hint">Begint met shpat_ — te vinden in Shopify Admin → Apps → App-ontwikkeling</div>
         </div>
         <button class="btn-primary" onclick="saveConfig()" style="width:100%;justify-content:center;padding:11px">Verbinding maken →</button>
       </div>
@@ -350,10 +347,9 @@ function scrollTo(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.cla
 
 function saveConfig(){
   const domain=document.getElementById('shopDomain').value.trim().replace('.myshopify.com','');
-  const clientId=document.getElementById('clientId').value.trim();
-  const clientSecret=document.getElementById('clientSecret').value.trim();
-  if(!domain||!clientId||!clientSecret){const e=document.getElementById('setupError');e.textContent='Vul alle velden in.';e.style.display='flex';return;}
-  config={...config,domain,clientId,clientSecret};
+  const accessToken=document.getElementById('accessToken').value.trim();
+  if(!domain||!accessToken){const e=document.getElementById('setupError');e.textContent='Vul alle velden in.';e.style.display='flex';return;}
+  config={...config,domain,accessToken};
   saveConfigStorage();
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('dashboardScreen').style.display='block';
@@ -364,20 +360,18 @@ function resetConfig(){
   document.getElementById('dashboardScreen').style.display='none';
   document.getElementById('setupScreen').style.display='block';
   document.getElementById('shopDomain').value=config.domain||'';
-  document.getElementById('clientId').value=config.clientId||'';
-  document.getElementById('clientSecret').value=config.clientSecret||'';
+  document.getElementById('accessToken').value=config.accessToken||'';
   document.getElementById('setupError').style.display='none';
 }
 
 async function shopifyFetch(path){
   const params=new URLSearchParams({
     shop: config.domain,
-    clientId: config.clientId,
-    clientSecret: config.clientSecret,
+    token: config.accessToken,
     endpoint: path
   });
   const resp=await fetch(`/api/shopify?${params}`);
-  if(!resp.ok){const d=await resp.json();throw new Error(d.error||`API fout ${resp.status}`);}
+  if(!resp.ok){const d=await resp.json().catch(()=>({}));throw new Error(d.error||`API fout ${resp.status}`);}
   return resp.json();
 }
 
@@ -557,14 +551,14 @@ async function loadMetaData(revenue,grossProfit){
 }
 
 loadConfig();
-if(config.domain&&config.clientId&&config.clientSecret){
+if(config.domain&&config.accessToken){
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('dashboardScreen').style.display='block';
   loadDashboard();
 }else{
   document.getElementById('setupScreen').style.display='block';
   if(config.domain)document.getElementById('shopDomain').value=config.domain;
-  if(config.clientId)document.getElementById('clientId').value=config.clientId;
+  if(config.accessToken)document.getElementById('accessToken').value=config.accessToken;
 }
 </script>
 </body>
