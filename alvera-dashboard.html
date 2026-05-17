@@ -114,7 +114,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .table-search{width:220px;padding:7px 12px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);outline:none;background:var(--bg)}
 .table-search:focus{border-color:var(--green);background:var(--white)}
 table{width:100%;border-collapse:collapse}
-thead th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:10px 10px 10px 0;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:49px;background:var(--white);z-index:10}
+thead th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:10px 10px 10px 0;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:49px;background:var(--white);z-index:5;box-shadow:0 1px 0 var(--border)}
 tbody td{padding:10px 10px 10px 0;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#fafafa}
@@ -269,11 +269,10 @@ tbody tr:hover{background:#fafafa}
 
         <!-- FINANCE PAGE -->
         <div id="page-finance">
-          <div class="kpi-grid fade-in" style="grid-template-columns:repeat(6,1fr)">
+          <div class="kpi-grid fade-in" style="grid-template-columns:repeat(5,1fr)">
             <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Netto omzet</div><div class="kpi-icon g">💶</div></div><div class="kpi-val" id="kRevenue">€0</div><div class="kpi-sub" id="kRevenueOrders">0 bestellingen</div></div>
             <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Bestellingen</div><div class="kpi-icon b">🛍️</div></div><div class="kpi-val" id="kOrders">0</div><div class="kpi-sub" id="kAov">Gem. €0</div></div>
             <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Brutowinst</div><div class="kpi-icon g">📈</div></div><div class="kpi-val" id="kProfit">€0</div><div class="kpi-sub"><span class="badge badge-gray" id="kMargin">0% marge</span></div></div>
-            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Winst na COGS</div><div class="kpi-icon g">💰</div></div><div class="kpi-val" id="kNetWinst">€0</div><div class="kpi-sub" id="kNetWinstSub">Na inkoopkosten</div></div>
             <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">COGS totaal</div><div class="kpi-icon o">📦</div></div><div class="kpi-val" id="kCogs">€0</div><div class="kpi-sub">Inkoopkosten</div></div>
             <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">ROAS vandaag</div><div class="kpi-icon p">🎯</div></div><div class="kpi-val" id="kRoasDay">—</div><div class="kpi-sub" id="kRoasDaySub" style="font-size:11px;color:var(--muted)">Koppel Meta Ads →</div></div>
           </div>
