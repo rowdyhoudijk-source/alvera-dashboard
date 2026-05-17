@@ -314,12 +314,12 @@ tbody tr:hover{background:#fafafa}
           </div>
           <div class="card" style="margin-bottom:16px">
             <div class="card-head"><div><div class="card-title">Omzet per dag</div><div class="card-sub">Totale omzet per dag in de periode</div></div></div>
-            <div style="overflow-x:auto" id="dailyRevenueWrap"></div>
+            <div class="chart-wrap" style="height:150px"><canvas id="dailyChart"></canvas></div>
+            <div style="margin-top:16px;overflow-x:auto" id="dailyRevenueWrap"></div>
           </div>
           <div class="card">
             <div class="card-head"><div><div class="card-title">Omzet per dag van de week</div><div class="card-sub">Gemiddelde omzet per weekdag</div></div></div>
             <div class="chart-wrap" style="height:150px"><canvas id="dayChart"></canvas></div>
-            <div style="margin-top:16px;overflow-x:auto" id="dayTableWrap"></div>
           </div>
         </div>
 
@@ -431,7 +431,7 @@ tbody tr:hover{background:#fafafa}
 // =====================
 // STATE
 // =====================
-let cfg={}, cogsData={}, compData=[], advisorRules={}, ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance';
+let cfg={}, cogsData={}, compData=[], advisorRules={}, ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, dailyChart=null, currentPage='finance';
 
 // =====================
 // STORAGE
@@ -703,7 +703,8 @@ function renderRevenueChart(orders,start,end){
 
 function renderDailyRevenue(orders,start,end){
   const days=Math.round((end-start)/86400000)+1;
-  const rows=[];
+  const labels=[],revenues=[],rows=[];
+
   for(let i=0;i<Math.min(days,60);i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
     const dayOrders=orders.filter(o=>{
@@ -715,7 +716,12 @@ function renderDailyRevenue(orders,start,end){
     const dayProfit=dayRevenue-dayCogs;
     const dateStr=d.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});
     const isToday=d.toDateString()===new Date().toDateString();
-    rows.push(`<tr style="${isToday?'background:var(--green-l);font-weight:600':''}${dayRevenue===0?'opacity:.5':''}">
+    const isBest=dayRevenue>0;
+
+    labels.push(d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}));
+    revenues.push(dayRevenue);
+
+    rows.push(`<tr style="${isToday?'background:var(--green-l);font-weight:600':''}${dayRevenue===0?'opacity:.4':''}">
       <td>${dateStr}${isToday?' <span class="badge badge-g" style="font-size:10px">Vandaag</span>':''}</td>
       <td style="text-align:right">${dayOrders.length||'—'}</td>
       <td style="text-align:right;font-weight:600;color:${dayRevenue>0?'var(--text)':'var(--muted)'}">${dayRevenue>0?eur(dayRevenue):'—'}</td>
@@ -723,6 +729,18 @@ function renderDailyRevenue(orders,start,end){
       <td style="text-align:right;color:${dayProfit>0?'var(--green)':dayProfit<0?'var(--red)':'var(--muted)'}">${dayRevenue>0?eur(dayProfit):'—'}</td>
     </tr>`);
   }
+
+  // Bar chart
+  if(dailyChart)dailyChart.destroy();
+  const ctx=document.getElementById('dailyChart').getContext('2d');
+  const maxRev=Math.max(...revenues);
+  dailyChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{data:revenues,backgroundColor:revenues.map(v=>v===maxRev&&v>0?'rgba(22,160,90,.4)':'rgba(22,160,90,.15)'),borderColor:'#16a05a',borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',maxTicksLimit:10}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',callback:v=>'€'+v.toLocaleString('nl-NL')}}}}
+  });
+
+  // Tabel
   document.getElementById('dailyRevenueWrap').innerHTML=`
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="border-bottom:2px solid var(--border)">
