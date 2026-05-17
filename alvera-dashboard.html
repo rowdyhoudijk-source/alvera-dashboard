@@ -522,8 +522,10 @@ async function fetchProducts(){
     id:e.node.legacyResourceId||e.node.id?.split('/').pop(),
     title:e.node.title,
     createdAt:e.node.createdAt,
+    image:e.node.featuredImage?.url||null,
     variants:(e.node.variants?.edges||[]).map(v=>v.node)
-  })).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  }));
+  // Titels komen altijd live uit Shopify — geen lokale cache nodig
 }
 
 // =====================
@@ -683,8 +685,9 @@ function renderCogs(){
   if(!prods.length){document.getElementById('cogsWrap').innerHTML='<div class="empty">Geen producten</div>';renderBeRoas([]);return;}
   const rows=prods.map(p=>{
     const c=cogsData[p.id]||{};
+    const img=p.image?`<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;margin-right:10px;flex-shrink:0" onerror="this.style.display='none'">`:`<div style="width:40px;height:40px;background:var(--bg);border-radius:6px;margin-right:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px">📦</div>`;
     return`<tr>
-      <td style="font-weight:500;min-width:220px">${p.title}</td>
+      <td style="min-width:260px"><div style="display:flex;align-items:center">${img}<span style="font-weight:500">${p.title}</span></div></td>
       <td style="color:var(--muted);font-size:12px">${p.variants?.length||1} var.</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">1x</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty1" value="${c.qty1||''}" placeholder="0.00"></div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">2x</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty2" value="${c.qty2||''}" placeholder="0.00"></div></td>
