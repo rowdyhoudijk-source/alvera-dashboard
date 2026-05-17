@@ -884,10 +884,10 @@ async function loadMetaAds(){
   const wrap=document.getElementById('metaAdsContent');
   wrap.innerHTML='<div class="loading"><div class="spinner"></div> Advertenties ophalen...</div>';
   
-  // Correcte account namen
+  // Correcte account namen — bovenste is account 7, onderste is account 1
   const accounts=[
-    {id:cfg.metaAccountId, label:'Ad Account 1'},
-    ...(cfg.metaAccountId2?[{id:cfg.metaAccountId2, label:'Ad Account 7'}]:[])
+    {id:cfg.metaAccountId, label:'Ad Account 7'},
+    ...(cfg.metaAccountId2?[{id:cfg.metaAccountId2, label:'Ad Account 1'}]:[])
   ];
   
   const{start,end}=getPeriodDates(currentPeriod);
@@ -896,8 +896,8 @@ async function loadMetaAds(){
   const until=toLocalDate(end);
   const insF='spend,impressions,reach,cpm,cpc,ctr,actions,cost_per_action_type,frequency';
   
-  // Tabel header
-  const tableHeader=`<div style="display:grid;grid-template-columns:2fr 90px 80px 80px 80px 80px 70px 70px 70px 70px 70px 70px;gap:4px;padding:8px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">
+  // Tabel header — sticky binnen zijn eigen container
+  const tableHeader=`<div style="position:sticky;top:0;z-index:5;display:grid;grid-template-columns:2fr 90px 80px 80px 80px 80px 70px 70px 70px 70px 70px 70px;gap:4px;padding:8px 18px;background:var(--bg);border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">
     <div>Campagne</div><div>Status</div><div style="text-align:right">Spend</div><div style="text-align:right">Bereik</div><div style="text-align:right">Impr.</div><div style="text-align:right">CPM</div><div style="text-align:right">CPC</div><div style="text-align:right">CTR</div><div style="text-align:right">Aankopen</div><div style="text-align:right">Kosten/aank.</div><div style="text-align:right">ROAS</div><div style="text-align:right">Freq.</div>
   </div>`;
 
@@ -957,7 +957,7 @@ async function loadMetaAds(){
           <span>📣 ${acc.label}</span>
           <span>Totaal spend: ${eur(accSpend)}</span>
         </div>
-        <div class="ads-account-body">
+        <div class="ads-account-body" style="max-height:600px;overflow-y:auto;position:relative">
           ${tableHeader}
           
           <!-- ACTIEF -->
