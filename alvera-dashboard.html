@@ -368,7 +368,8 @@ tbody tr:hover{background:#fafafa}
           <div class="card">
             <div class="card-head"><div class="card-title">Meta Ads Koppeling</div></div>
             <div class="form-group"><label class="form-label">Meta Access Token</label><input class="form-input" id="metaTokenInput" placeholder="EAABwzLixnjYBO..." type="password"/></div>
-            <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="metaAccountInput" placeholder="act_123456789"/></div>
+            <div class="form-group"><label class="form-label">Ad Account ID 1</label><input class="form-input" id="metaAccountInput" placeholder="908246051371226"/><div class="form-hint">Eerste ad account voor Alvera Valencia</div></div>
+            <div class="form-group"><label class="form-label">Ad Account ID 2 (optioneel)</label><input class="form-input" id="metaAccountInput2" placeholder="1338642063847885"/><div class="form-hint">Tweede ad account voor Alvera Valencia</div></div>
             <button class="btn" onclick="saveMeta()">Koppelen →</button>
           </div>
           <div class="card" id="metaCampaignsCard" style="display:none">
@@ -425,6 +426,7 @@ function showPage(page, el){
   if(page==='meta'){
     if(cfg.metaToken)document.getElementById('metaTokenInput').value=cfg.metaToken;
     if(cfg.metaAccountId)document.getElementById('metaAccountInput').value=cfg.metaAccountId;
+    if(cfg.metaAccountId2)document.getElementById('metaAccountInput2').value=cfg.metaAccountId2;
   }
 }
 
@@ -838,9 +840,11 @@ function renderAdvisor(){
 function saveMeta(){
   const token=document.getElementById('metaTokenInput').value.trim();
   const accountId=document.getElementById('metaAccountInput').value.trim();
-  if(!token||!accountId){showToast('Vul beide velden in');return;}
+  const accountId2=document.getElementById('metaAccountInput2').value.trim();
+  if(!token||!accountId){showToast('Vul token en minimaal 1 account ID in');return;}
   cfg.metaToken=token;
-  cfg.metaAccountId=accountId.startsWith('act_')?accountId:'act_'+accountId;
+  cfg.metaAccountId=accountId.replace('act_','');
+  cfg.metaAccountId2=accountId2.replace('act_','');
   saveCfg();
   document.getElementById('metaNavBadge').style.display='block';
   showToast('✓ Meta gekoppeld');
@@ -850,7 +854,6 @@ function saveMeta(){
 async function loadMeta(orders){
   try{
     const{start,end}=getPeriodDates(currentPeriod);
-    // Gebruik lokale datum in plaats van UTC om tijdzone problemen te voorkomen
     const toLocalDate=d=>{
       const y=d.getFullYear();
       const m=String(d.getMonth()+1).padStart(2,'0');
@@ -859,11 +862,22 @@ async function loadMeta(orders){
     };
     const since=toLocalDate(start);
     const until=toLocalDate(end);
-    const url=`https://graph.facebook.com/v19.0/act_${cfg.metaAccountId.replace('act_','')}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=1&access_token=${cfg.metaToken}`;
-    const r=await fetch(url);const d=await r.json();
-    if(d.error)throw new Error(d.error.message);
-    // Tel alle dagen op in de periode
-    const spend=(d.data||[]).reduce((s,row)=>s+parseFloat(row.spend||0),0);
+
+    // Haal data op voor account 1
+    async function getSpend(accountId){
+      const url=`https://graph.facebook.com/v19.0/act_${accountId}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=1&access_token=${cfg.metaToken}`;
+      const r=await fetch(url);
+      const d=await r.json();
+      if(d.error)throw new Error(d.error.message);
+      return(d.data||[]).reduce((s,row)=>s+parseFloat(row.spend||0),0);
+    }
+
+    // Combineer beide accounts
+    const accounts=[cfg.metaAccountId];
+    if(cfg.metaAccountId2)accounts.push(cfg.metaAccountId2);
+    const spends=await Promise.all(accounts.map(getSpend));
+    const spend=spends.reduce((s,v)=>s+v,0);
+
     const paid=orders.filter(o=>!['refunded','voided'].includes(o.financial_status));
     const revenue=paid.reduce((s,o)=>s+parseFloat(o.total_price||0),0);
     const totalCogs=paid.reduce((s,o)=>s+calcCogs(o),0);
@@ -887,7 +901,7 @@ async function loadMeta(orders){
     document.getElementById('metaKpiRow').style.display='grid';
     document.getElementById('metaNavBadge').style.display='block';
 
-  }catch(e){console.warn('Meta fout:',e.message);}
+  }catch(e){console.warn('Meta fout:',e.message);showToast('Meta fout: '+e.message);}
 }
 
 // =====================
