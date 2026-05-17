@@ -3,304 +3,373 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alvera Valencia — Finance Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Alvera Valencia — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root {
-  --bg: #f0f4f1;
-  --white: #ffffff;
-  --green: #1a9e5c;
-  --green-light: #e8f5ee;
-  --green-mid: #c6e8d4;
-  --text: #1a1a1a;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --red: #e53e3e;
-  --red-light: #fff5f5;
-  --orange: #f59e0b;
-  --blue: #3b82f6;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
-  --radius: 12px;
-  --font: 'Inter', sans-serif;
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f7f5;--white:#fff;--green:#16a05a;--green-l:#e6f5ee;--green-m:#b8e0cb;
+  --text:#111;--muted:#6b7280;--border:#e5e7eb;--red:#dc2626;--red-l:#fef2f2;
+  --orange:#d97706;--blue:#2563eb;--blue-l:#eff6ff;--purple:#7c3aed;--purple-l:#f5f3ff;
+  --shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-md:0 4px 12px rgba(0,0,0,0.08);
+  --radius:10px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
 }
-body { font-family:var(--font); background:var(--bg); color:var(--text); font-size:14px; min-height:100vh; }
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
 
 /* SIDEBAR */
-.sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:var(--white); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:100; box-shadow:var(--shadow); }
-.sidebar-logo { padding:24px 20px 20px; border-bottom:1px solid var(--border); }
-.logo-text { font-size:15px; font-weight:700; color:var(--text); letter-spacing:-0.3px; }
-.logo-text span { color:var(--green); }
-.logo-sub { font-size:11px; color:var(--muted); margin-top:2px; }
-.sidebar-nav { padding:12px; flex:1; }
-.nav-section { font-size:10px; font-weight:600; color:var(--muted); letter-spacing:1px; text-transform:uppercase; padding:12px 8px 6px; }
-.nav-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
-.nav-item:hover { background:var(--bg); color:var(--text); }
-.nav-item.active { background:var(--green-light); color:var(--green); }
-.nav-item .icon { font-size:15px; width:20px; text-align:center; }
-.sidebar-bottom { padding:16px; border-top:1px solid var(--border); }
-.sync-status { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); }
-.sync-dot { width:7px; height:7px; border-radius:50%; background:var(--green); flex-shrink:0; }
-.sync-dot.offline { background:#d1d5db; }
-.sync-dot.syncing { background:var(--orange); animation:blink 1s infinite; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+.logo{padding:20px 16px;border-bottom:1px solid var(--border)}
+.logo-name{font-size:14px;font-weight:700;color:var(--text)}
+.logo-name span{color:var(--green)}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.nav{padding:10px;flex:1;overflow-y:auto}
+.nav-group{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:10px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;user-select:none}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--green-l);color:var(--green)}
+.nav-item .ni{font-size:14px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--green);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+.sidebar-foot{padding:14px;border-top:1px solid var(--border)}
+.sync-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:#d1d5db;flex-shrink:0}
+.dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot.sync{background:var(--orange);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* MAIN */
-.main { margin-left:220px; min-height:100vh; }
-.topbar { background:var(--white); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
-.topbar-left { display:flex; align-items:center; gap:8px; }
-.page-title { font-size:15px; font-weight:600; }
-.page-sub { font-size:12px; color:var(--muted); }
-.topbar-right { display:flex; align-items:center; gap:10px; }
-.period-group { display:flex; background:var(--bg); border-radius:8px; padding:3px; gap:2px; }
-.period-btn { padding:5px 12px; border-radius:6px; border:none; background:transparent; color:var(--muted); font-family:var(--font); font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; }
-.period-btn.active { background:var(--white); color:var(--text); box-shadow:var(--shadow); }
-.btn-primary { background:var(--green); color:white; border:none; padding:8px 16px; border-radius:8px; font-family:var(--font); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:6px; }
-.btn-primary:hover { background:#168a4f; }
-.btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
-.btn-secondary { background:var(--white); color:var(--text); border:1px solid var(--border); padding:7px 14px; border-radius:8px; font-family:var(--font); font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; }
-.btn-secondary:hover { border-color:var(--green); color:var(--green); }
-.content { padding:24px 28px; }
+.main{margin-left:220px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-size:15px;font-weight:600}
+.page-sub{font-size:12px;color:var(--muted);margin-left:6px}
+.topbar-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.period-wrap{display:flex;background:var(--bg);border-radius:8px;padding:3px;gap:2px}
+.pb{padding:5px 11px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.pb.active{background:var(--white);color:var(--text);box-shadow:var(--shadow)}
+.date-picker-row{display:none;align-items:center;gap:6px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:5px 10px}
+.date-picker-row input[type=date]{border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:var(--font);font-size:12px;outline:none;cursor:pointer;color:var(--text)}
+.btn{background:var(--green);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:hover{background:#138a4d}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-ghost{background:var(--white);color:var(--text);border:1px solid var(--border);padding:6px 13px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{border-color:var(--green);color:var(--green)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-red{background:var(--red);color:#fff;border:none;padding:5px 10px;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer}
+
+/* CONTENT */
+.content{padding:22px 24px;flex:1}
 
 /* SETUP */
-.setup-wrap { max-width:480px; margin:48px auto; }
-.setup-card { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow-md); padding:36px; }
-.setup-badge { display:inline-flex; align-items:center; gap:6px; background:var(--green-light); color:var(--green); font-size:11px; font-weight:600; letter-spacing:0.5px; padding:4px 10px; border-radius:20px; margin-bottom:16px; }
-.setup-title { font-size:22px; font-weight:700; margin-bottom:8px; }
-.setup-sub { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:28px; }
-.form-group { margin-bottom:16px; }
-.form-label { display:block; font-size:12px; font-weight:600; margin-bottom:6px; }
-.form-input { width:100%; background:var(--bg); border:1.5px solid var(--border); color:var(--text); padding:10px 14px; border-radius:8px; font-family:var(--font); font-size:13px; outline:none; transition:border-color 0.15s; }
-.form-input:focus { border-color:var(--green); background:var(--white); }
-.form-hint { font-size:11px; color:var(--muted); margin-top:5px; }
-
-/* ALERTS */
-.alert { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:16px; display:flex; align-items:flex-start; gap:8px; }
-.alert-error { background:var(--red-light); color:var(--red); border:1px solid #fed7d7; }
-.alert-info { background:var(--green-light); color:var(--green); border:1px solid var(--green-mid); }
+.setup-wrap{max-width:460px;margin:48px auto}
+.setup-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:32px}
+.setup-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-l);color:var(--green);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:14px}
+.setup-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.setup-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;margin-bottom:5px}
+.form-input{width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font);font-size:13px;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--green);background:var(--white)}
+.form-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.alert{padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:7px}
+.alert-error{background:var(--red-l);color:var(--red);border:1px solid #fecaca}
 
 /* LOADING */
-.loading-overlay { display:flex; align-items:center; justify-content:center; padding:60px 0; gap:12px; color:var(--muted); font-size:13px; }
-.spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin 0.7s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;gap:12px;color:var(--muted);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* KPI CARDS */
-.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
-.kpi-card { background:var(--white); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); transition:box-shadow 0.2s; }
-.kpi-card:hover { box-shadow:var(--shadow-md); }
-.kpi-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.kpi-label { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:0.3px; text-transform:uppercase; }
-.kpi-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
-.kpi-icon.green { background:var(--green-light); }
-.kpi-icon.red { background:var(--red-light); }
-.kpi-icon.blue { background:#eff6ff; }
-.kpi-icon.orange { background:#fffbeb; }
-.kpi-value { font-size:28px; font-weight:700; color:var(--text); line-height:1; margin-bottom:6px; letter-spacing:-0.5px; }
-.kpi-meta { display:flex; align-items:center; gap:6px; }
-.kpi-change { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; }
-.kpi-change.up { background:var(--green-light); color:var(--green); }
-.kpi-change.down { background:var(--red-light); color:var(--red); }
-.kpi-change.neutral { background:var(--bg); color:var(--muted); }
-.kpi-sub-text { font-size:12px; color:var(--muted); }
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi-card{background:var(--white);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);transition:box-shadow .2s;border:1px solid var(--border)}
+.kpi-card:hover{box-shadow:var(--shadow-md)}
+.kpi-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kpi-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.kpi-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.kpi-icon.g{background:var(--green-l)}
+.kpi-icon.r{background:var(--red-l)}
+.kpi-icon.b{background:var(--blue-l)}
+.kpi-icon.o{background:#fffbeb}
+.kpi-icon.p{background:var(--purple-l)}
+.kpi-val{font-size:26px;font-weight:700;color:var(--text);line-height:1;margin-bottom:6px;letter-spacing:-.5px}
+.kpi-val.pos{color:var(--green)}
+.kpi-val.neg{color:var(--red)}
+.kpi-sub{font-size:12px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-g{background:var(--green-l);color:var(--green)}
+.badge-r{background:var(--red-l);color:var(--red)}
+.badge-o{background:#fffbeb;color:var(--orange)}
+.badge-b{background:var(--blue-l);color:var(--blue)}
+.badge-p{background:var(--purple-l);color:var(--purple)}
+.badge-gray{background:var(--bg);color:var(--muted)}
 
-/* CARDS & LAYOUT */
-.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.section-title { font-size:14px; font-weight:600; }
-.section-sub { font-size:12px; color:var(--muted); margin-top:1px; }
-.grid-3 { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:20px; }
-.card { background:var(--white); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); }
-.chart-wrap { position:relative; height:200px; }
+/* CARDS */
+.card{background:var(--white);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600}
+.card-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.chart-wrap{height:200px;position:relative}
 
-/* TABLE */
-.table-wrap { overflow-x:auto; }
-table { width:100%; border-collapse:collapse; }
-thead th { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; padding:0 12px 10px 0; text-align:left; border-bottom:1px solid var(--border); }
-tbody td { padding:11px 12px 11px 0; font-size:13px; border-bottom:1px solid var(--border); }
-tbody tr:last-child td { border-bottom:none; }
-tbody tr:hover { background:#fafafa; }
-.badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; }
-.badge-green { background:var(--green-light); color:var(--green); }
-.badge-yellow { background:#fffbeb; color:#92400e; }
-.badge-red { background:var(--red-light); color:var(--red); }
+/* TABLES */
+.table-search{width:220px;padding:7px 12px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);outline:none;background:var(--bg)}
+.table-search:focus{border-color:var(--green);background:var(--white)}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 10px 10px 0;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:10px 10px 10px 0;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafafa}
 
-/* BREAKDOWN */
-.breakdown-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
-.breakdown-item:last-child { border-bottom:none; }
-.breakdown-label { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px; }
-.breakdown-dot { width:8px; height:8px; border-radius:50%; }
-.breakdown-value { font-size:14px; font-weight:600; }
-.progress-bar { height:4px; background:var(--border); border-radius:2px; margin-top:5px; overflow:hidden; }
-.progress-fill { height:100%; border-radius:2px; transition:width 1s ease; }
-
-/* COGS */
-.cogs-input { background:var(--bg); border:1.5px solid var(--border); color:var(--text); padding:5px 10px; border-radius:6px; font-family:var(--font); font-size:12px; width:90px; text-align:right; outline:none; transition:border-color 0.15s; }
-.cogs-input:focus { border-color:var(--green); background:var(--white); }
+/* COGS INPUT */
+.cogs-inp{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-family:var(--mono);font-size:12px;width:80px;text-align:right;outline:none}
+.cogs-inp:focus{border-color:var(--green);background:var(--white)}
 
 /* META BANNER */
-.meta-banner { background:linear-gradient(135deg,#1a9e5c 0%,#0d7a44 100%); border-radius:var(--radius); padding:18px 22px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; color:white; }
-.meta-banner-title { font-size:14px; font-weight:600; margin-bottom:3px; }
-.meta-banner-sub { font-size:12px; opacity:0.8; }
-.btn-white { background:white; color:var(--green); border:none; padding:8px 16px; border-radius:8px; font-family:var(--font); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
-.btn-white:hover { background:var(--green-light); }
+.meta-banner{background:linear-gradient(135deg,#16a05a,#0d7a44);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;color:#fff}
+.meta-banner h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.meta-banner p{font-size:12px;opacity:.85}
+.btn-white{background:#fff;color:var(--green);border:none;padding:7px 14px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+/* BREAKDOWN */
+.breakdown-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.breakdown-item:last-child{border-bottom:none}
+.breakdown-l{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.breakdown-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.breakdown-v{font-size:14px;font-weight:600}
+.prog{height:3px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden;width:100px}
+.prog-fill{height:100%;border-radius:2px;transition:width .8s ease}
+
+/* SCALING ADVISOR */
+.advisor-card{border-radius:var(--radius);padding:16px;margin-bottom:10px;border:1px solid var(--border)}
+.advisor-card.scale{background:#f0fdf4;border-color:#86efac}
+.advisor-card.kill{background:#fef2f2;border-color:#fca5a5}
+.advisor-card.wait{background:#fffbeb;border-color:#fcd34d}
+.advisor-card.test{background:#eff6ff;border-color:#93c5fd}
+.advisor-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.advisor-name{font-size:13px;font-weight:600}
+.advisor-metrics{display:flex;gap:16px;font-size:12px;color:var(--muted)}
+.advisor-advice{font-size:12px;line-height:1.5;color:var(--text)}
+
+/* COMPETITOR SHEET */
+.comp-table-wrap{overflow-x:auto}
+.comp-table{min-width:1200px}
+.comp-table th{white-space:nowrap;font-size:10px}
+.comp-table td{white-space:nowrap;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.comp-input{background:transparent;border:none;font-family:var(--font);font-size:12px;color:var(--text);width:100%;outline:none;padding:2px 4px}
+.comp-input:focus{background:var(--green-l);border-radius:4px}
+.status-select{border:none;background:transparent;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:2px 4px;border-radius:4px}
 
 /* MODAL */
-.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; display:none; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
-.modal-overlay.open { display:flex; }
-.modal { background:var(--white); border-radius:16px; padding:32px; max-width:440px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.15); }
-.modal-title { font-size:18px; font-weight:700; margin-bottom:6px; }
-.modal-sub { font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.6; }
-.empty { padding:32px 0; text-align:center; color:var(--muted); font-size:13px; }
-.fade-in { animation:fadeUp 0.3s ease forwards; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-@media(max-width:1100px) { .kpi-row{grid-template-columns:repeat(2,1fr);} }
-@media(max-width:768px) { .sidebar{display:none;} .main{margin-left:0;} .grid-3{grid-template-columns:1fr;} }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;padding:28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+
+/* TOAST */
+#toast{display:none;position:fixed;bottom:22px;right:22px;background:#111;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;box-shadow:var(--shadow-md)}
+.empty{padding:30px;text-align:center;color:var(--muted);font-size:13px}
+
+/* BE-ROAS TABLE */
+.beroas-table{width:100%;font-size:12px}
+.beroas-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:0 8px 8px 0;border-bottom:1px solid var(--border)}
+.beroas-table td{padding:8px 8px 8px 0;border-bottom:1px solid var(--border)}
+.beroas-table tr:last-child td{border-bottom:none}
+
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0}.grid-2{grid-template-columns:1fr}}
+.fade-in{animation:fadeUp .3s ease forwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
 
 <aside class="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-text">Alvera <span>Valencia</span></div>
-    <div class="logo-sub">Finance Dashboard</div>
+  <div class="logo">
+    <div class="logo-name">Alvera <span>Valencia</span></div>
+    <div class="logo-sub">Business Dashboard</div>
   </div>
-  <nav class="sidebar-nav">
-    <div class="nav-section">Overzicht</div>
-    <div class="nav-item active" onclick="scrollToTop(this)"><span class="icon">📊</span> Finance</div>
-    <div class="nav-item" onclick="scrollTo('ordersCard',this)"><span class="icon">🛍️</span> Bestellingen</div>
-    <div class="nav-item" onclick="scrollTo('cogsCard',this)"><span class="icon">📦</span> COGS</div>
-    <div class="nav-section">Integraties</div>
-    <div class="nav-item" onclick="showMetaSetup()">
-      <span class="icon">📣</span> Meta Ads
-      <span id="metaConnectedDot" style="display:none;margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--green)"></span>
+  <nav class="nav">
+    <div class="nav-group">Overzicht</div>
+    <div class="nav-item active" onclick="showPage('finance',this)"><span class="ni">📊</span> Finance</div>
+    <div class="nav-item" onclick="showPage('orders',this)"><span class="ni">🛍️</span> Bestellingen</div>
+    <div class="nav-group">Producten</div>
+    <div class="nav-item" onclick="showPage('cogs',this)"><span class="ni">📦</span> COGS / Producten</div>
+    <div class="nav-item" onclick="showPage('competitor',this)"><span class="ni">🔍</span> Competitor Sheet</div>
+    <div class="nav-group">Marketing</div>
+    <div class="nav-item" onclick="showPage('advisor',this)"><span class="ni">📈</span> Scaling Advisor</div>
+    <div class="nav-item" onclick="showPage('meta',this)">
+      <span class="ni">📣</span> Meta Ads
+      <span id="metaNavBadge" style="display:none" class="nav-badge">✓</span>
     </div>
-    <div class="nav-section">Account</div>
-    <div class="nav-item" onclick="resetConfig()"><span class="icon">⚙️</span> Instellingen</div>
+    <div class="nav-group">Account</div>
+    <div class="nav-item" onclick="resetConfig()"><span class="ni">⚙️</span> Instellingen</div>
   </nav>
-  <div class="sidebar-bottom">
-    <div class="sync-status">
-      <div class="sync-dot offline" id="sidebarDot"></div>
-      <span id="sidebarSync">Niet verbonden</span>
+  <div class="sidebar-foot">
+    <div class="sync-row">
+      <div class="dot" id="syncDot"></div>
+      <span id="syncText">Niet verbonden</span>
     </div>
   </div>
 </aside>
 
 <div class="main">
   <div class="topbar">
-    <div class="topbar-left">
-      <span class="page-title">Finance Overzicht</span>
-      <span class="page-sub" id="pageSubtitle"></span>
+    <div style="display:flex;align-items:center">
+      <span class="page-title" id="pageTitle">Finance</span>
+      <span class="page-sub" id="pageSub"></span>
     </div>
-    <div class="topbar-right">
-      <div class="period-group">
-        <button class="period-btn active" onclick="setPeriod('today',this)">Vandaag</button>
-        <button class="period-btn" onclick="setPeriod('week',this)">7 dagen</button>
-        <button class="period-btn" onclick="setPeriod('month',this)">30 dagen</button>
-        <button class="period-btn" onclick="setPeriod('year',this)">Dit jaar</button>
+    <div class="topbar-r">
+      <div class="period-wrap" id="periodWrap">
+        <button class="pb active" onclick="setPeriod('today',this)">Vandaag</button>
+        <button class="pb" onclick="setPeriod('yesterday',this)">Gisteren</button>
+        <button class="pb" onclick="setPeriod('week',this)">7 dagen</button>
+        <button class="pb" onclick="setPeriod('month',this)">30 dagen</button>
+        <button class="pb" onclick="setPeriod('year',this)">Dit jaar</button>
+        <button class="pb" onclick="toggleDatePicker(this)" id="customBtn">📅</button>
       </div>
-      <button class="btn-primary" id="syncBtn" onclick="loadDashboard()">↻ Sync</button>
+      <div class="date-picker-row" id="datePickerRow">
+        <label style="font-size:11px;color:var(--muted)">Van</label>
+        <input type="date" id="dateFrom">
+        <label style="font-size:11px;color:var(--muted)">Tot</label>
+        <input type="date" id="dateTo">
+        <button class="btn btn-sm" onclick="applyCustomDate()">Toepassen</button>
+      </div>
+      <button class="btn" id="syncBtn" onclick="loadData()">↻ Sync</button>
     </div>
   </div>
 
   <div class="content">
+
     <!-- SETUP -->
     <div id="setupScreen" style="display:none" class="setup-wrap">
       <div class="setup-card">
-        <div class="setup-badge">🔗 Shopify Koppeling</div>
+        <div class="setup-badge">🔗 Shopify koppeling</div>
         <div class="setup-title">Verbinding instellen</div>
-        <p class="setup-sub">Vul je winkel naam in en klik op verbinden. Je wordt doorgestuurd naar Shopify om toegang te geven — precies zoals andere apps.</p>
+        <p class="setup-sub">Vul je winkel naam in en verbind via Shopify. Je gegevens worden lokaal opgeslagen.</p>
         <div id="setupError" class="alert alert-error" style="display:none"></div>
         <div class="form-group">
           <label class="form-label">Winkel naam</label>
-          <input class="form-input" id="shopDomain" placeholder="alvera-valencia" />
+          <input class="form-input" id="shopInput" placeholder="818b6c-b9" />
           <div class="form-hint">Alleen de naam vóór .myshopify.com</div>
         </div>
-        <button class="btn-primary" onclick="startOAuth()" style="width:100%;justify-content:center;padding:11px">Verbinden via Shopify →</button>
+        <button class="btn" onclick="startOAuth()" style="width:100%;justify-content:center;padding:11px">Verbinden via Shopify →</button>
       </div>
     </div>
 
     <!-- DASHBOARD -->
-    <div id="dashboardScreen" style="display:none">
-      <div id="dashError" class="alert alert-error" style="display:none"></div>
-      <div id="loadingIndicator" class="loading-overlay"><div class="spinner"></div> Gegevens ophalen van Shopify...</div>
+    <div id="dashScreen" style="display:none">
+      <div id="loadingWrap" class="loading"><div class="spinner"></div> Data ophalen...</div>
       <div id="dashContent" style="display:none">
 
+        <!-- META BANNER -->
         <div class="meta-banner" id="metaBanner" style="display:none">
-          <div>
-            <div class="meta-banner-title">📣 Koppel Meta Ads voor volledige winstberekening</div>
-            <div class="meta-banner-sub">Zie je ROAS en netto winst na advertentiekosten — automatisch bijgewerkt</div>
-          </div>
-          <button class="btn-white" onclick="showMetaSetup()">Meta koppelen →</button>
+          <div><h4>📣 Koppel Meta Ads voor volledige winstberekening</h4><p>ROAS, ad spend en netto winst automatisch bijgewerkt</p></div>
+          <button class="btn-white" onclick="showPage('meta',null)">Meta koppelen →</button>
         </div>
 
-        <div class="kpi-row fade-in">
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Netto omzet</div><div class="kpi-icon green">💶</div></div>
-            <div class="kpi-value" id="kpiRevenue">€0</div>
-            <div class="kpi-meta"><span class="kpi-change neutral" id="kpiRevenueOrders">0 orders</span></div>
+        <!-- FINANCE PAGE -->
+        <div id="page-finance">
+          <div class="kpi-grid fade-in">
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Netto omzet</div><div class="kpi-icon g">💶</div></div><div class="kpi-val" id="kRevenue">€0</div><div class="kpi-sub" id="kRevenueOrders">0 bestellingen</div></div>
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Bestellingen</div><div class="kpi-icon b">🛍️</div></div><div class="kpi-val" id="kOrders">0</div><div class="kpi-sub" id="kAov">Gem. €0</div></div>
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Brutowinst</div><div class="kpi-icon g">📈</div></div><div class="kpi-val" id="kProfit">€0</div><div class="kpi-sub"><span class="badge badge-gray" id="kMargin">0% marge</span></div></div>
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">COGS totaal</div><div class="kpi-icon o">📦</div></div><div class="kpi-val" id="kCogs">€0</div><div class="kpi-sub">Inkoopkosten</div></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Bestellingen</div><div class="kpi-icon blue">🛍️</div></div>
-            <div class="kpi-value" id="kpiOrders">0</div>
-            <div class="kpi-meta"><span class="kpi-sub-text" id="kpiAov">Gem. €0</span></div>
+          <div class="kpi-grid fade-in" id="metaKpiRow" style="display:none">
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Ad Spend</div><div class="kpi-icon r">📣</div></div><div class="kpi-val" id="kAdSpend">€0</div><div class="kpi-sub">Facebook + Instagram</div></div>
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">ROAS</div><div class="kpi-icon g">🎯</div></div><div class="kpi-val" id="kRoas">0x</div><div class="kpi-sub">Omzet / Ad Spend</div></div>
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">BE-ROAS</div><div class="kpi-icon p">⚖️</div></div><div class="kpi-val" id="kBeroas">0x</div><div class="kpi-sub">Break-even punt</div></div>
+            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Netto winst</div><div class="kpi-icon g">💰</div></div><div class="kpi-val" id="kNetProfit">€0</div><div class="kpi-sub"><span class="badge badge-gray" id="kNetMargin">0%</span></div></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Brutowinst</div><div class="kpi-icon green">📈</div></div>
-            <div class="kpi-value" id="kpiProfit">€0</div>
-            <div class="kpi-meta"><span class="kpi-change neutral" id="kpiMargin">0% marge</span></div>
+          <div class="grid-2">
+            <div class="card"><div class="card-head"><div><div class="card-title">Omzet trend</div><div class="card-sub" id="chartSub">Per dag</div></div></div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
+            <div class="card"><div class="card-head"><div class="card-title">Winstoverzicht</div></div><div id="breakdown"></div></div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">COGS totaal</div><div class="kpi-icon orange">📦</div></div>
-            <div class="kpi-value" id="kpiCogs">€0</div>
-            <div class="kpi-meta"><span class="kpi-sub-text">Inkoopkosten</span></div>
-          </div>
-        </div>
-
-        <div class="kpi-row fade-in" id="kpiRowMeta" style="display:none">
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">Ad Spend (Meta)</div><div class="kpi-icon red">📣</div></div>
-            <div class="kpi-value" id="kpiAdSpend">€0</div>
-            <div class="kpi-meta"><span class="kpi-sub-text">Facebook + Instagram</span></div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-header"><div class="kpi-label">ROAS</div><div class="kpi-icon green">🎯</div></div>
-            <div class="kpi-value" id="kpiRoas">0x</div>
-            <div class="kpi-meta"><span class="kpi-sub-text">Omzet / Ad Spend</span></div>
-          </div>
-          <div class="kpi-card" style="grid-column:span 2">
-            <div class="kpi-header"><div class="kpi-label">Netto winst (na ads + COGS)</div><div class="kpi-icon green">💰</div></div>
-            <div class="kpi-value" id="kpiNetProfit">€0</div>
-            <div class="kpi-meta"><span class="kpi-change neutral" id="kpiNetMargin">0% netto marge</span></div>
-          </div>
-        </div>
-
-        <div class="grid-3 fade-in">
           <div class="card">
-            <div class="section-header">
-              <div><div class="section-title">Omzet trend</div><div class="section-sub" id="chartSubtitle">Per dag</div></div>
+            <div class="card-head"><div><div class="card-title">Beste verkoopdag</div><div class="card-sub">Gemiddelde omzet per dag van de week</div></div></div>
+            <div class="chart-wrap" style="height:150px"><canvas id="dayChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- ORDERS PAGE -->
+        <div id="page-orders" style="display:none">
+          <div class="card">
+            <div class="card-head">
+              <div><div class="card-title">Bestellingen</div><div class="card-sub" id="ordersSub">—</div></div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="orderStatusFilter" class="form-input" style="width:160px;padding:6px 10px;font-size:12px" onchange="renderOrders()">
+                  <option value="">Alle statussen</option>
+                  <option value="paid">Betaald</option>
+                  <option value="pending">In afwachting</option>
+                  <option value="refunded">Terugbetaald</option>
+                </select>
+                <input class="table-search" id="orderSearch" placeholder="🔍 Zoek order..." oninput="renderOrders()">
+                <button class="btn btn-sm" onclick="exportOrders()">⬇ Export</button>
+              </div>
             </div>
-            <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+            <div style="overflow-x:auto" id="ordersWrap"></div>
           </div>
+        </div>
+
+        <!-- COGS PAGE -->
+        <div id="page-cogs" style="display:none">
           <div class="card">
-            <div class="section-header"><div class="section-title">Winstoverzicht</div></div>
-            <div id="profitBreakdown"></div>
+            <div class="card-head">
+              <div><div class="card-title">COGS & Producten</div><div class="card-sub">Nieuwste producten bovenaan — vul inkoopprijzen in per aantal</div></div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input class="table-search" id="cogsSearch" placeholder="🔍 Zoek product..." oninput="renderCogs()">
+                <button class="btn btn-sm" onclick="saveCogs()">💾 Opslaan</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto" id="cogsWrap"></div>
+          </div>
+          <div class="card" id="beRoasCard">
+            <div class="card-head"><div><div class="card-title">BE-ROAS Prijssuggesties</div><div class="card-sub">Minimale verkoopprijs voor winstdoelen per product</div></div></div>
+            <div style="overflow-x:auto" id="beRoasWrap"></div>
           </div>
         </div>
 
-        <div class="card fade-in" id="ordersCard" style="margin-bottom:20px">
-          <div class="section-header">
-            <div><div class="section-title">Recente bestellingen</div><div class="section-sub" id="ordersSubtitle">—</div></div>
+        <!-- COMPETITOR PAGE -->
+        <div id="page-competitor" style="display:none">
+          <div class="card">
+            <div class="card-head">
+              <div><div class="card-title">Competitor Producten</div><div class="card-sub">Bijhouden van gevonden producten en winnaars</div></div>
+              <div style="display:flex;gap:8px">
+                <input class="table-search" id="compSearch" placeholder="🔍 Zoek..." oninput="renderComp()">
+                <button class="btn btn-sm" onclick="addCompRow()">+ Toevoegen</button>
+                <button class="btn-ghost btn-sm" onclick="saveComp()">💾 Opslaan</button>
+              </div>
+            </div>
+            <div class="comp-table-wrap" id="compWrap"></div>
           </div>
-          <div class="table-wrap" id="ordersTableWrap"></div>
         </div>
 
-        <div class="card fade-in" id="cogsCard">
-          <div class="section-header">
-            <div><div class="section-title">COGS per product</div><div class="section-sub">Vul de inkoopprijs per product in voor automatische winstberekening</div></div>
-            <button class="btn-primary" onclick="saveCogs()" style="font-size:12px;padding:7px 14px">Opslaan</button>
+        <!-- SCALING ADVISOR PAGE -->
+        <div id="page-advisor" style="display:none">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><div><div class="card-title">📈 Scaling Advisor</div><div class="card-sub">Dagelijks advies op basis van jouw regels — koppel Meta Ads voor live data</div></div></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+              <div><label class="form-label">Kill als ROAS onder (na €)</label><div style="display:flex;gap:6px"><input class="form-input" id="ruleKillRoas" placeholder="1.5" style="font-size:12px"><input class="form-input" id="ruleKillSpend" placeholder="30" style="font-size:12px"></div></div>
+              <div><label class="form-label">Schaal als ROAS boven (na dagen)</label><div style="display:flex;gap:6px"><input class="form-input" id="ruleScaleRoas" placeholder="3.0" style="font-size:12px"><input class="form-input" id="ruleScaleDays" placeholder="3" style="font-size:12px"></div></div>
+              <div><label class="form-label">Test nieuwe creative als CTR onder</label><input class="form-input" id="ruleTestCtr" placeholder="1.0%" style="font-size:12px"></div>
+            </div>
+            <button class="btn btn-sm" onclick="saveAdvisorRules()">Regels opslaan</button>
           </div>
-          <div id="cogsTableWrap"></div>
+          <div id="advisorContent"><div class="empty">Koppel Meta Ads en klik Sync voor adviezen</div></div>
+        </div>
+
+        <!-- META PAGE -->
+        <div id="page-meta" style="display:none">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Meta Ads Koppeling</div></div>
+            <div class="form-group"><label class="form-label">Meta Access Token</label><input class="form-input" id="metaTokenInput" placeholder="EAABwzLixnjYBO..." type="password"/></div>
+            <div class="form-group"><label class="form-label">Ad Account ID</label><input class="form-input" id="metaAccountInput" placeholder="act_123456789"/></div>
+            <button class="btn" onclick="saveMeta()">Koppelen →</button>
+          </div>
+          <div class="card" id="metaCampaignsCard" style="display:none">
+            <div class="card-head"><div><div class="card-title">Campagnes</div><div class="card-sub" id="metaCampaignSub">—</div></div></div>
+            <div id="metaCampaignsWrap"></div>
+          </div>
         </div>
 
       </div>
@@ -308,289 +377,495 @@ tbody tr:hover { background:#fafafa; }
   </div>
 </div>
 
-<!-- META MODAL -->
-<div class="modal-overlay" id="metaModal" onclick="if(event.target===this)closeMetaModal()">
-  <div class="modal">
-    <div class="modal-title">📣 Meta Ads koppelen</div>
-    <p class="modal-sub">Voer je Meta Marketing API-gegevens in om advertentiekosten, ROAS en netto winst automatisch bij te houden.</p>
-    <div class="form-group">
-      <label class="form-label">Meta Access Token</label>
-      <input class="form-input" id="metaToken" placeholder="EAABwzLixnjYBO..." />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Ad Account ID</label>
-      <input class="form-input" id="metaAccountId" placeholder="act_123456789" />
-    </div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn-primary" onclick="saveMetaConfig()" style="flex:1;justify-content:center">Koppelen →</button>
-      <button class="btn-secondary" onclick="closeMetaModal()">Annuleren</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:white;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;box-shadow:var(--shadow-md)"></div>
+<div id="toast"></div>
 
 <script>
-let config={}, cogsData={}, ordersData=[], productsData=[], currentPeriod='today', accessToken=null, tokenExpiry=0, revenueChart=null;
+// =====================
+// STATE
+// =====================
+let cfg={}, cogsData={}, compData=[], advisorRules={}, ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance';
 
-function loadConfig(){try{const c=localStorage.getItem('av_config');if(c)config=JSON.parse(c);const g=localStorage.getItem('av_cogs');if(g)cogsData=JSON.parse(g);}catch(e){}}
-function saveConfigStorage(){localStorage.setItem('av_config',JSON.stringify(config));}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2200);}
-
-function scrollToTop(el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
-function scrollTo(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
-
-function startOAuth(){
-  const domain=document.getElementById('shopDomain').value.trim().replace('.myshopify.com','');
-  if(!domain){const e=document.getElementById('setupError');e.textContent='Vul je winkel naam in.';e.style.display='flex';return;}
-  const clientId='c140876fa195a970006cbcb9b1540974';
-  const redirectUri=encodeURIComponent(window.location.origin+'/api/callback');
-  window.location.href=`/api/auth?shop=${domain}&clientId=${clientId}&redirectUri=${decodeURIComponent(redirectUri)}`;
+// =====================
+// STORAGE
+// =====================
+function loadStorage(){
+  try{
+    const c=localStorage.getItem('av2_cfg'); if(c)cfg=JSON.parse(c);
+    const g=localStorage.getItem('av2_cogs'); if(g)cogsData=JSON.parse(g);
+    const d=localStorage.getItem('av2_comp'); if(d)compData=JSON.parse(d);
+    const r=localStorage.getItem('av2_rules'); if(r)advisorRules=JSON.parse(r);
+  }catch(e){}
 }
+function saveCfg(){localStorage.setItem('av2_cfg',JSON.stringify(cfg));}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
 
-function saveConfig(){
-  // Wordt aangeroepen na OAuth callback via URL params
-  const params=new URLSearchParams(window.location.search);
-  const token=params.get('token');
-  const shop=params.get('shop');
-  if(token&&shop){
-    config={...config, domain:shop, accessToken:token};
-    saveConfigStorage();
-    // Verwijder token uit URL
-    window.history.replaceState({}, '', window.location.pathname);
+// =====================
+// NAVIGATION
+// =====================
+function showPage(page, el){
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.toLowerCase().includes(page))n.classList.add('active');});
+  const pages=['finance','orders','cogs','competitor','advisor','meta'];
+  pages.forEach(p=>{ const el=document.getElementById('page-'+p); if(el)el.style.display=p===page?'block':'none'; });
+  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'COGS & Producten',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
+  document.getElementById('pageTitle').textContent=titles[page]||page;
+  document.getElementById('periodWrap').style.display=['finance','orders'].includes(page)?'flex':'none';
+  document.getElementById('datePickerRow').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='cogs')renderCogs();
+  if(page==='competitor')renderComp();
+  if(page==='advisor')renderAdvisor();
+  if(page==='meta'){
+    if(cfg.metaToken)document.getElementById('metaTokenInput').value=cfg.metaToken;
+    if(cfg.metaAccountId)document.getElementById('metaAccountInput').value=cfg.metaAccountId;
   }
 }
 
-function resetConfig(){
-  config={...config, accessToken:null};
-  saveConfigStorage();
-  document.getElementById('dashboardScreen').style.display='none';
-  document.getElementById('setupScreen').style.display='block';
-  document.getElementById('shopDomain').value=config.domain||'';
-  document.getElementById('setupError').style.display='none';
+// =====================
+// OAUTH
+// =====================
+function startOAuth(){
+  const shop=document.getElementById('shopInput').value.trim().replace('.myshopify.com','');
+  if(!shop){const e=document.getElementById('setupError');e.textContent='Vul je winkel naam in.';e.style.display='flex';return;}
+  cfg.domain=shop; saveCfg();
+  window.location.href=`/api/auth?shop=${shop}`;
 }
 
-async function shopifyQuery(type, extra={}) {
-  const params=new URLSearchParams({
-    shop: config.domain,
-    token: config.accessToken,
-    type,
-    ...extra
-  });
-  const resp=await fetch(`/api/shopify?${params}`);
-  const d=await resp.json().catch(()=>({}));
-  if(!resp.ok) throw new Error(d.error||`API fout ${resp.status}`);
+function saveConfig(){
+  const p=new URLSearchParams(window.location.search);
+  const token=p.get('token'), shop=p.get('shop');
+  if(token&&shop){cfg.domain=shop;cfg.accessToken=token;saveCfg();window.history.replaceState({},'',window.location.pathname);}
+}
+
+function resetConfig(){
+  cfg={...cfg,accessToken:null};saveCfg();
+  document.getElementById('dashScreen').style.display='none';
+  document.getElementById('setupScreen').style.display='block';
+  document.getElementById('shopInput').value=cfg.domain||'';
+}
+
+// =====================
+// PERIOD
+// =====================
+function getPeriodDates(p){
+  if(p==='custom'&&customRange)return customRange;
+  const now=new Date();
+  let s=new Date(now),e=new Date(now);
+  s.setHours(0,0,0,0);e.setHours(23,59,59,999);
+  if(p==='yesterday'){s.setDate(s.getDate()-1);e.setDate(e.getDate()-1);e.setHours(23,59,59,999);}
+  else if(p==='week'){s.setDate(s.getDate()-6);}
+  else if(p==='month'){s.setDate(s.getDate()-29);}
+  else if(p==='year'){s=new Date(now.getFullYear(),0,1);}
+  return{start:s,end:e};
+}
+
+function setPeriod(p,btn){
+  currentPeriod=p;
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.getElementById('datePickerRow').style.display='none';
+  loadData();
+}
+
+function toggleDatePicker(btn){
+  const row=document.getElementById('datePickerRow');
+  const open=row.style.display==='flex';
+  row.style.display=open?'none':'flex';
+  if(!open){const t=new Date().toISOString().split('T')[0];document.getElementById('dateFrom').value=t;document.getElementById('dateTo').value=t;}
+}
+
+function applyCustomDate(){
+  const f=document.getElementById('dateFrom').value, t=document.getElementById('dateTo').value;
+  if(!f||!t){showToast('Selecteer een periode');return;}
+  customRange={start:new Date(f+'T00:00:00'),end:new Date(t+'T23:59:59')};
+  currentPeriod='custom';
+  document.getElementById('datePickerRow').style.display='none';
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('customBtn').classList.add('active');
+  const fmt=d=>d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'});
+  document.getElementById('pageSub').textContent=`— ${fmt(customRange.start)} t/m ${fmt(customRange.end)}`;
+  loadData();
+}
+
+// =====================
+// SHOPIFY API
+// =====================
+async function shopifyQuery(type,extra={}){
+  const params=new URLSearchParams({shop:cfg.domain,token:cfg.accessToken,type,...extra});
+  const r=await fetch(`/api/shopify?${params}`);
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||`Fout ${r.status}`);
   return d;
 }
 
 async function fetchOrders(start,end){
-  const data=await shopifyQuery('orders', { since: start.toISOString().split('T')[0] });
-  const orders=(data.orders?.edges||[]).map(e=>e.node);
-  // Filter by date range
-  return orders.filter(o=>{
-    const d=new Date(o.createdAt);
-    return d>=start && d<=end;
+  const data=await shopifyQuery('orders',{since:start.toISOString().split('T')[0]});
+  return(data.orders?.edges||[]).map(e=>e.node).filter(o=>{
+    const d=new Date(o.createdAt);return d>=start&&d<=end;
   }).map(o=>({
-    id: o.id,
-    name: o.name,
-    created_at: o.createdAt,
-    financial_status: o.displayFinancialStatus?.toLowerCase(),
-    total_price: o.totalPriceSet?.shopMoney?.amount||'0',
-    line_items: (o.lineItems?.edges||[]).map(e=>({
-      quantity: e.node.quantity,
-      product_id: e.node.product?.id?.split('/').pop(),
+    id:o.id,name:o.name,created_at:o.createdAt,
+    financial_status:o.displayFinancialStatus?.toLowerCase()||'unknown',
+    total_price:o.totalPriceSet?.shopMoney?.amount||'0',
+    line_items:(o.lineItems?.edges||[]).map(e=>({
+      quantity:e.node.quantity,
+      product_id:e.node.product?.legacyResourceId||e.node.product?.id?.split('/').pop(),
+      title:e.node.product?.title||e.node.title
     }))
   }));
 }
 
 async function fetchProducts(){
   const data=await shopifyQuery('products');
-  return (data.products?.edges||[]).map(e=>({
-    id: e.node.id?.split('/').pop(),
-    title: e.node.title,
-    variants: e.node.variants?.edges||[]
-  }));
+  return(data.products?.edges||[]).map(e=>({
+    id:e.node.legacyResourceId||e.node.id?.split('/').pop(),
+    title:e.node.title,
+    createdAt:e.node.createdAt,
+    variants:(e.node.variants?.edges||[]).map(v=>v.node)
+  })).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 }
 
-function getPeriodDates(period){
-  const now=new Date();
-  let start=new Date(now);start.setHours(0,0,0,0);
-  let end=new Date(now);end.setHours(23,59,59,999);
-  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-6);start.setHours(0,0,0,0);}
-  else if(period==='month'){start=new Date(now);start.setDate(now.getDate()-29);start.setHours(0,0,0,0);}
-  else if(period==='year'){start=new Date(now.getFullYear(),0,1);}
-  return{start,end};
-}
-
-function setPeriod(period,btn){
-  currentPeriod=period;
-  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  loadDashboard();
-}
-
-function eur(n){return'€'+Number(n).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function calcOrderCogs(order){return(order.line_items||[]).reduce((s,item)=>s+(cogsData[item.product_id]||0)*item.quantity,0);}
-
-async function loadDashboard(){
-  if(!config.domain)return;
-  document.getElementById('loadingIndicator').style.display='flex';
+// =====================
+// MAIN LOAD
+// =====================
+async function loadData(){
+  if(!cfg.domain||!cfg.accessToken)return;
+  document.getElementById('loadingWrap').style.display='flex';
   document.getElementById('dashContent').style.display='none';
-  document.getElementById('dashError').style.display='none';
   document.getElementById('syncBtn').disabled=true;
-  document.getElementById('sidebarDot').className='sync-dot syncing';
-  document.getElementById('sidebarSync').textContent='Synchroniseren...';
-  const labels={'today':'Vandaag','week':'Afgelopen 7 dagen','month':'Afgelopen 30 dagen','year':'Dit jaar'};
-  document.getElementById('pageSubtitle').textContent='— '+labels[currentPeriod];
+  document.getElementById('syncDot').className='dot sync';
+  document.getElementById('syncText').textContent='Synchroniseren...';
+
+  const periodLabels={today:'Vandaag',yesterday:'Gisteren',week:'Afgelopen 7 dagen',month:'Afgelopen 30 dagen',year:'Dit jaar',custom:'Aangepaste periode'};
+  document.getElementById('pageSub').textContent='— '+periodLabels[currentPeriod];
+
   try{
     const{start,end}=getPeriodDates(currentPeriod);
     const[orders,products]=await Promise.all([fetchOrders(start,end),fetchProducts()]);
     ordersData=orders;productsData=products;
-    document.getElementById('sidebarDot').className='sync-dot';
-    document.getElementById('sidebarSync').textContent='Gesynchroniseerd '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-    renderDashboard(orders,products,start,end);
-  }catch(err){
-    document.getElementById('loadingIndicator').style.display='none';
+
+    document.getElementById('syncDot').className='dot live';
+    document.getElementById('syncText').textContent='Sync '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('loadingWrap').style.display='none';
     document.getElementById('dashContent').style.display='block';
-    const e=document.getElementById('dashError');e.textContent='⚠️ '+err.message;e.style.display='flex';
-    document.getElementById('sidebarDot').className='sync-dot offline';
-    document.getElementById('sidebarSync').textContent='Verbindingsfout';
+
+    renderFinance(orders,start,end);
+    renderOrders();
+    if(cfg.metaToken)loadMeta(orders);
+    else{document.getElementById('metaBanner').style.display='flex';document.getElementById('metaKpiRow').style.display='none';}
+
+  }catch(err){
+    document.getElementById('loadingWrap').innerHTML=`<div style="color:var(--red)">⚠ ${err.message}</div>`;
+    document.getElementById('syncDot').className='dot';
+    document.getElementById('syncText').textContent='Fout bij sync';
   }
   document.getElementById('syncBtn').disabled=false;
 }
 
-function renderDashboard(orders,products,start,end){
-  document.getElementById('loadingIndicator').style.display='none';
-  document.getElementById('dashContent').style.display='block';
+// =====================
+// FORMAT
+// =====================
+function eur(n){return'€'+Number(n).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function calcCogs(order){
+  return(order.line_items||[]).reduce((s,item)=>{
+    const qty=item.quantity||1;
+    const pid=item.product_id;
+    const c=cogsData[pid];
+    if(!c)return s;
+    let price=c.qty1||0;
+    if(qty>=3&&c.qty3)price=c.qty3/qty;
+    else if(qty>=2&&c.qty2)price=c.qty2/qty;
+    return s+price*qty;
+  },0);
+}
+
+// =====================
+// FINANCE
+// =====================
+function renderFinance(orders,start,end){
   const paid=orders.filter(o=>!['refunded','voided'].includes(o.financial_status));
   const revenue=paid.reduce((s,o)=>s+parseFloat(o.total_price||0),0);
-  const totalCogs=paid.reduce((s,o)=>s+calcOrderCogs(o),0);
+  const totalCogs=paid.reduce((s,o)=>s+calcCogs(o),0);
   const profit=revenue-totalCogs;
   const margin=revenue>0?profit/revenue*100:0;
   const aov=paid.length>0?revenue/paid.length:0;
-  document.getElementById('kpiRevenue').textContent=eur(revenue);
-  document.getElementById('kpiRevenueOrders').textContent=paid.length+' bestellingen';
-  document.getElementById('kpiOrders').textContent=paid.length;
-  document.getElementById('kpiAov').textContent='Gem. orderwaarde: '+eur(aov);
-  document.getElementById('kpiProfit').textContent=eur(profit);
-  document.getElementById('kpiProfit').style.color=profit>=0?'var(--green)':'var(--red)';
-  document.getElementById('kpiMargin').textContent=margin.toFixed(1)+'% marge';
-  document.getElementById('kpiMargin').className='kpi-change '+(margin>=20?'up':margin>0?'neutral':'down');
-  document.getElementById('kpiCogs').textContent=eur(totalCogs);
-  if(config.metaToken){document.getElementById('metaBanner').style.display='none';document.getElementById('metaConnectedDot').style.display='block';loadMetaData(revenue,profit);}
-  else{document.getElementById('metaBanner').style.display='flex';document.getElementById('kpiRowMeta').style.display='none';}
-  renderChart(orders,start,end);
+
+  document.getElementById('kRevenue').textContent=eur(revenue);
+  document.getElementById('kRevenueOrders').textContent=paid.length+' bestellingen';
+  document.getElementById('kOrders').textContent=paid.length;
+  document.getElementById('kAov').textContent='Gem. '+eur(aov);
+  document.getElementById('kProfit').textContent=eur(profit);
+  document.getElementById('kProfit').className='kpi-val '+(profit>=0?'pos':'neg');
+  document.getElementById('kMargin').textContent=margin.toFixed(1)+'% marge';
+  document.getElementById('kMargin').className='badge '+(margin>=20?'badge-g':margin>0?'badge-o':'badge-r');
+  document.getElementById('kCogs').textContent=eur(totalCogs);
+
   renderBreakdown(revenue,totalCogs,profit);
-  renderOrdersTable(orders.slice(0,20));
-  document.getElementById('ordersSubtitle').textContent=orders.length+' bestellingen in periode';
-  renderCogsTable(products);
+  renderRevenueChart(orders,start,end);
+  renderDayChart(orders);
 }
 
-function renderChart(orders,start,end){
+function renderBreakdown(revenue,cogs,profit){
+  const cp=revenue>0?Math.min(100,cogs/revenue*100):0;
+  const pp=revenue>0?Math.min(100,Math.max(0,profit/revenue*100)):0;
+  document.getElementById('breakdown').innerHTML=`
+    <div class="breakdown-item"><div><div class="breakdown-l"><div class="breakdown-dot" style="background:var(--green)"></div>Omzet</div></div><div class="breakdown-v">${eur(revenue)}</div></div>
+    <div class="breakdown-item"><div><div class="breakdown-l"><div class="breakdown-dot" style="background:var(--orange)"></div>COGS</div><div class="prog"><div class="prog-fill" style="width:${cp.toFixed(0)}%;background:var(--orange)"></div></div></div><div class="breakdown-v" style="color:var(--red)">−${eur(cogs)}</div></div>
+    <div class="breakdown-item" style="border-top:2px solid var(--border);padding-top:14px;margin-top:4px"><div><div class="breakdown-l" style="font-weight:600;color:var(--text)"><div class="breakdown-dot" style="background:var(--green)"></div>Brutowinst</div><div class="prog"><div class="prog-fill" style="width:${pp.toFixed(0)}%;background:var(--green)"></div></div></div><div class="breakdown-v" style="color:${profit>=0?'var(--green)':'var(--red)'}">${eur(profit)}</div></div>
+  `;
+}
+
+function renderRevenueChart(orders,start,end){
   const days=Math.round((end-start)/86400000)+1;
   const labels=[],data=[];
-  for(let i=0;i<Math.min(days,30);i++){
+  for(let i=0;i<Math.min(days,60);i++){
     const d=new Date(start);d.setDate(start.getDate()+i);
     labels.push(d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}));
     data.push(orders.filter(o=>{const od=new Date(o.created_at);return od.toDateString()===d.toDateString()&&!['refunded','voided'].includes(o.financial_status);}).reduce((s,o)=>s+parseFloat(o.total_price||0),0));
   }
-  document.getElementById('chartSubtitle').textContent=days===1?'Vandaag':`Afgelopen ${Math.min(days,30)} dagen`;
+  document.getElementById('chartSub').textContent=days===1?'Vandaag':`${Math.min(days,60)} dagen`;
   if(revenueChart)revenueChart.destroy();
   const ctx=document.getElementById('revenueChart').getContext('2d');
-  const gradient=ctx.createLinearGradient(0,0,0,200);
-  gradient.addColorStop(0,'rgba(26,158,92,0.15)');
-  gradient.addColorStop(1,'rgba(26,158,92,0)');
-  revenueChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:'#1a9e5c',backgroundColor:gradient,borderWidth:2,fill:true,tension:0.4,pointRadius:days<=7?4:2,pointBackgroundColor:'#1a9e5c',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+eur(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10,family:'Inter'},color:'#9ca3af',maxTicksLimit:7}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10,family:'Inter'},color:'#9ca3af',callback:v=>'€'+v.toLocaleString('nl-NL')}}}}});
+  const grad=ctx.createLinearGradient(0,0,0,200);grad.addColorStop(0,'rgba(22,160,90,.15)');grad.addColorStop(1,'rgba(22,160,90,0)');
+  revenueChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:'#16a05a',backgroundColor:grad,borderWidth:2,fill:true,tension:.4,pointRadius:days<=7?4:1,pointBackgroundColor:'#16a05a',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',maxTicksLimit:8}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',callback:v=>'€'+v.toLocaleString('nl-NL')}}}}});
 }
 
-function renderBreakdown(revenue,cogs,profit){
-  const cogsPerc=revenue>0?Math.min(100,cogs/revenue*100):0;
-  const profitPerc=revenue>0?Math.min(100,Math.max(0,profit/revenue*100)):0;
-  document.getElementById('profitBreakdown').innerHTML=`
-    <div class="breakdown-item">
-      <div class="breakdown-label"><div class="breakdown-dot" style="background:var(--green)"></div>Omzet</div>
-      <div class="breakdown-value">${eur(revenue)}</div>
-    </div>
-    <div class="breakdown-item">
-      <div><div class="breakdown-label"><div class="breakdown-dot" style="background:var(--orange)"></div>COGS</div>
-      <div class="progress-bar" style="width:100px"><div class="progress-fill" style="width:${cogsPerc.toFixed(0)}%;background:var(--orange)"></div></div></div>
-      <div class="breakdown-value" style="color:var(--red)">−${eur(cogs)}</div>
-    </div>
-    <div class="breakdown-item" style="border-top:2px solid var(--border);padding-top:16px;margin-top:4px">
-      <div><div class="breakdown-label" style="color:var(--text);font-weight:600"><div class="breakdown-dot" style="background:var(--green)"></div>Brutowinst</div>
-      <div class="progress-bar" style="width:100px"><div class="progress-fill" style="width:${profitPerc.toFixed(0)}%;background:var(--green)"></div></div></div>
-      <div class="breakdown-value" style="color:${profit>=0?'var(--green)':'var(--red)'}">${eur(profit)}</div>
-    </div>`;
+function renderDayChart(orders){
+  const days=['Zo','Ma','Di','Wo','Do','Vr','Za'];
+  const totals=[0,0,0,0,0,0,0],counts=[0,0,0,0,0,0,0];
+  orders.filter(o=>!['refunded','voided'].includes(o.financial_status)).forEach(o=>{
+    const d=new Date(o.created_at).getDay();
+    totals[d]+=parseFloat(o.total_price||0);counts[d]++;
+  });
+  const avgs=totals.map((t,i)=>counts[i]>0?Math.round(t/counts[i]):0);
+  if(dayChart)dayChart.destroy();
+  const ctx=document.getElementById('dayChart').getContext('2d');
+  dayChart=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{data:avgs,backgroundColor:'rgba(22,160,90,.15)',borderColor:'#16a05a',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'},color:'#6b7280'}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',callback:v=>'€'+v.toLocaleString('nl-NL')}}}}});
 }
 
-function renderOrdersTable(orders){
-  if(!orders.length){document.getElementById('ordersTableWrap').innerHTML='<div class="empty">Geen bestellingen in deze periode</div>';return;}
-  const sm={'paid':['Betaald','badge-green'],'pending':['In afwachting','badge-yellow'],'refunded':['Terugbetaald','badge-red'],'partially_refunded':['Gedeeltelijk terugbet.','badge-red'],'voided':['Geannuleerd','badge-red'],'authorized':['Geautoriseerd','badge-yellow'],'partially_paid':['Gedeeltelijk betaald','badge-yellow']};
-  const rows=orders.map(o=>{const[label,cls]=sm[o.financial_status]||[o.financial_status,'badge-yellow'];const cogs=calcOrderCogs(o);const p=parseFloat(o.total_price||0)-cogs;const date=new Date(o.created_at).toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});return`<tr><td style="font-weight:600;color:var(--green)">${o.name}</td><td style="color:var(--muted)">${date}</td><td style="font-weight:600">${eur(o.total_price)}</td><td style="color:var(--muted)">${eur(cogs)}</td><td style="font-weight:600;color:${p>=0?'var(--green)':'var(--red)'}">${eur(p)}</td><td><span class="badge ${cls}">${label}</span></td></tr>`;}).join('');
-  document.getElementById('ordersTableWrap').innerHTML=`<table><thead><tr><th>Order</th><th>Datum</th><th>Omzet</th><th>COGS</th><th>Winst</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+// =====================
+// ORDERS
+// =====================
+function renderOrders(){
+  const q=(document.getElementById('orderSearch')?.value||'').toLowerCase();
+  const sf=document.getElementById('orderStatusFilter')?.value||'';
+  let orders=ordersData.filter(o=>{
+    const mQ=!q||o.name.toLowerCase().includes(q);
+    const mS=!sf||o.financial_status===sf;
+    return mQ&&mS;
+  });
+  document.getElementById('ordersSub').textContent=orders.length+' bestellingen';
+  const sm={paid:['Betaald','badge-g'],pending:['In afwachting','badge-o'],refunded:['Terugbetaald','badge-r'],partially_refunded:['Gedeeltelijk terugbet.','badge-r'],voided:['Geannuleerd','badge-r'],authorized:['Geautoriseerd','badge-o'],partially_paid:['Gedeeltelijk betaald','badge-o']};
+  if(!orders.length){document.getElementById('ordersWrap').innerHTML='<div class="empty">Geen bestellingen gevonden</div>';return;}
+  const rows=orders.map(o=>{
+    const[label,cls]=sm[o.financial_status]||[o.financial_status,'badge-gray'];
+    const cogs=calcCogs(o);const p=parseFloat(o.total_price||0)-cogs;
+    const date=new Date(o.created_at).toLocaleDateString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const items=(o.line_items||[]).map(i=>`${i.quantity}x ${i.title||'?'}`).join(', ');
+    return`<tr><td style="font-weight:600;color:var(--green)">${o.name}</td><td style="color:var(--muted)">${date}</td><td style="font-weight:600">${eur(o.total_price)}</td><td style="color:var(--muted)">${eur(cogs)}</td><td style="font-weight:600;color:${p>=0?'var(--green)':'var(--red)'}">${eur(p)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12px">${items}</td><td><span class="badge ${cls}">${label}</span></td></tr>`;
+  }).join('');
+  document.getElementById('ordersWrap').innerHTML=`<table><thead><tr><th>Order</th><th>Datum</th><th>Omzet</th><th>COGS</th><th>Winst</th><th>Producten</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function renderCogsTable(products){
-  if(!products.length){document.getElementById('cogsTableWrap').innerHTML='<div class="empty">Geen producten gevonden</div>';return;}
-  const rows=products.map(p=>`<tr><td style="font-weight:500">${p.title}</td><td style="color:var(--muted)">${p.variants?.length||1} variant(en)</td><td style="text-align:right"><input class="cogs-input" type="number" step="0.01" min="0" data-id="${p.id}" value="${cogsData[p.id]||''}" placeholder="0.00"/></td><td style="color:var(--muted);font-size:12px">EUR</td></tr>`).join('');
-  document.getElementById('cogsTableWrap').innerHTML=`<table><thead><tr><th>Product</th><th>Varianten</th><th style="text-align:right">Inkoopprijs (€)</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+function exportOrders(){
+  const rows=[['Order','Datum','Omzet','COGS','Winst','Status'],...ordersData.map(o=>[o.name,new Date(o.created_at).toLocaleDateString('nl-NL'),o.total_price,calcCogs(o).toFixed(2),(parseFloat(o.total_price)-calcCogs(o)).toFixed(2),o.financial_status])];
+  const csv=rows.map(r=>r.join(';')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='bestellingen.csv';a.click();
 }
 
-function saveCogs(){document.querySelectorAll('.cogs-input').forEach(inp=>{cogsData[inp.dataset.id]=parseFloat(inp.value)||0;});localStorage.setItem('av_cogs',JSON.stringify(cogsData));recalculate();showToast('✓ COGS opgeslagen');}
-
-function recalculate(){
-  if(!ordersData.length)return;
-  const paid=ordersData.filter(o=>!['refunded','voided'].includes(o.financial_status));
-  const revenue=paid.reduce((s,o)=>s+parseFloat(o.total_price||0),0);
-  const totalCogs=paid.reduce((s,o)=>s+calcOrderCogs(o),0);
-  const profit=revenue-totalCogs;
-  const margin=revenue>0?profit/revenue*100:0;
-  document.getElementById('kpiCogs').textContent=eur(totalCogs);
-  document.getElementById('kpiProfit').textContent=eur(profit);
-  document.getElementById('kpiProfit').style.color=profit>=0?'var(--green)':'var(--red)';
-  document.getElementById('kpiMargin').textContent=margin.toFixed(1)+'% marge';
-  renderBreakdown(revenue,totalCogs,profit);
-  renderOrdersTable(ordersData.slice(0,20));
+// =====================
+// COGS
+// =====================
+function renderCogs(){
+  const q=(document.getElementById('cogsSearch')?.value||'').toLowerCase();
+  const prods=productsData.filter(p=>!q||p.title.toLowerCase().includes(q));
+  if(!prods.length){document.getElementById('cogsWrap').innerHTML='<div class="empty">Geen producten</div>';renderBeRoas([]);return;}
+  const rows=prods.map(p=>{
+    const c=cogsData[p.id]||{};
+    return`<tr>
+      <td style="font-weight:500;min-width:220px">${p.title}</td>
+      <td style="color:var(--muted);font-size:12px">${p.variants?.length||1} var.</td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">1x</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty1" value="${c.qty1||''}" placeholder="0.00"></div></td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">2x</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty2" value="${c.qty2||''}" placeholder="0.00"></div></td>
+      <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">3x+</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty3" value="${c.qty3||''}" placeholder="0.00"></div></td>
+      <td style="color:var(--muted);font-size:11px">${p.variants?.[0]?.price?eur(p.variants[0].price):'-'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cogsWrap').innerHTML=`<table><thead><tr><th>Product</th><th>Varianten</th><th>COGS 1 stuk</th><th>COGS 2 stuks</th><th>COGS 3+ stuks</th><th>Verkoopprijs</th></tr></thead><tbody>${rows}</tbody></table>`;
+  renderBeRoas(prods);
 }
 
-function showMetaSetup(){const m=document.getElementById('metaModal');m.classList.add('open');if(config.metaToken)document.getElementById('metaToken').value=config.metaToken;if(config.metaAccountId)document.getElementById('metaAccountId').value=config.metaAccountId;}
-function closeMetaModal(){document.getElementById('metaModal').classList.remove('open');}
-function saveMetaConfig(){const token=document.getElementById('metaToken').value.trim();const accountId=document.getElementById('metaAccountId').value.trim();if(!token||!accountId)return;config.metaToken=token;config.metaAccountId=accountId.startsWith('act_')?accountId:'act_'+accountId;saveConfigStorage();closeMetaModal();loadDashboard();}
+function saveCogs(){
+  document.querySelectorAll('.cogs-inp').forEach(inp=>{
+    const id=inp.dataset.id,qty=inp.dataset.qty,val=parseFloat(inp.value)||0;
+    if(!cogsData[id])cogsData[id]={};
+    cogsData[id][qty]=val;
+  });
+  localStorage.setItem('av2_cogs',JSON.stringify(cogsData));
+  renderCogs();showToast('✓ COGS opgeslagen');
+}
 
-async function loadMetaData(revenue,grossProfit){
+function renderBeRoas(prods){
+  const targets=[{label:'BE-ROAS (1.5x)',roas:1.5,cls:'badge-r'},{label:'20% winst',margin:.20,cls:'badge-o'},{label:'30% winst',margin:.30,cls:'badge-g'},{label:'35% winst',margin:.35,cls:'badge-g'}];
+  if(!prods.length){document.getElementById('beRoasWrap').innerHTML='<div class="empty">Voeg COGS in om prijssuggesties te zien</div>';return;}
+  const rows=prods.filter(p=>cogsData[p.id]?.qty1).map(p=>{
+    const c=cogsData[p.id];
+    const cogs1=c.qty1||0;
+    const cols=targets.map(t=>{
+      let price;
+      if(t.roas){price=(cogs1*t.roas).toFixed(2);}
+      else{price=(cogs1/(1-t.margin)).toFixed(2);}
+      return`<td><span class="badge ${t.cls}">€${price}</span></td>`;
+    }).join('');
+    return`<tr><td style="font-weight:500">${p.title}</td><td style="color:var(--muted);font-size:12px">€${cogs1}</td>${cols}</tr>`;
+  }).join('');
+  if(!rows){document.getElementById('beRoasWrap').innerHTML='<div class="empty">Vul eerst COGS in bij producten</div>';return;}
+  const headers=targets.map(t=>`<th>${t.label}</th>`).join('');
+  document.getElementById('beRoasWrap').innerHTML=`<table class="beroas-table"><thead><tr><th>Product</th><th>COGS 1x</th>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// =====================
+// COMPETITOR SHEET
+// =====================
+function loadComp(){try{const d=localStorage.getItem('av2_comp');if(d)compData=JSON.parse(d);}catch(e){}}
+function saveComp(){localStorage.setItem('av2_comp',JSON.stringify(compData));showToast('✓ Opgeslagen');}
+
+function addCompRow(){
+  compData.unshift({id:Date.now(),markt:'',code:'',naam:'',verkoop:'',vergelijk:'',korting:'',url:'',startdatum:'',bereik:'',adspend:'',gem_dag:'',competitor_url:'',facebook_url:'',status:'Testen',hypothese:'',geimporteerd:'Nee'});
+  renderComp();
+}
+
+function renderComp(){
+  const q=(document.getElementById('compSearch')?.value||'').toLowerCase();
+  const data=compData.filter(r=>!q||Object.values(r).some(v=>String(v).toLowerCase().includes(q)));
+  if(!data.length){document.getElementById('compWrap').innerHTML='<div class="empty">Geen producten — klik "+ Toevoegen" om te beginnen</div>';return;}
+  const statusColors={Testen:'badge-b',Winnaar:'badge-g',Gestopt:'badge-r',Schalen:'badge-p'};
+  const rows=data.map(r=>`<tr>
+    <td><input class="comp-input" value="${r.markt||''}" onchange="updateComp(${r.id},'markt',this.value)" placeholder="NL/ES/DE"></td>
+    <td><input class="comp-input" value="${r.code||''}" onchange="updateComp(${r.id},'code',this.value)" placeholder="FB-001" style="width:70px"></td>
+    <td><input class="comp-input" value="${r.naam||''}" onchange="updateComp(${r.id},'naam',this.value)" placeholder="Productnaam" style="min-width:160px"></td>
+    <td><input class="comp-input" value="${r.verkoop||''}" onchange="updateComp(${r.id},'verkoop',this.value)" placeholder="€39.95" style="width:70px"></td>
+    <td><input class="comp-input" value="${r.vergelijk||''}" onchange="updateComp(${r.id},'vergelijk',this.value)" placeholder="€79.95" style="width:70px"></td>
+    <td><input class="comp-input" value="${r.korting||''}" onchange="updateComp(${r.id},'korting',this.value)" placeholder="50%" style="width:55px"></td>
+    <td><input class="comp-input" value="${r.url||''}" onchange="updateComp(${r.id},'url',this.value)" placeholder="https://..." style="min-width:140px">${r.url?`<a href="${r.url}" target="_blank" style="font-size:10px;color:var(--green);margin-left:4px">↗</a>`:''}</td>
+    <td><input class="comp-input" type="date" value="${r.startdatum||''}" onchange="updateComp(${r.id},'startdatum',this.value)" style="width:120px"></td>
+    <td><input class="comp-input" value="${r.bereik||''}" onchange="updateComp(${r.id},'bereik',this.value)" placeholder="80-120" style="width:80px"></td>
+    <td><input class="comp-input" value="${r.adspend||''}" onchange="updateComp(${r.id},'adspend',this.value)" placeholder="€0" style="width:70px"></td>
+    <td><input class="comp-input" value="${r.gem_dag||''}" onchange="updateComp(${r.id},'gem_dag',this.value)" placeholder="€0/dag" style="width:70px"></td>
+    <td><input class="comp-input" value="${r.competitor_url||''}" onchange="updateComp(${r.id},'competitor_url',this.value)" placeholder="https://..." style="min-width:120px">${r.competitor_url?`<a href="${r.competitor_url}" target="_blank" style="font-size:10px;color:var(--green);margin-left:4px">↗</a>`:''}</td>
+    <td><input class="comp-input" value="${r.facebook_url||''}" onchange="updateComp(${r.id},'facebook_url',this.value)" placeholder="FB Ads lib..." style="min-width:120px">${r.facebook_url?`<a href="${r.facebook_url}" target="_blank" style="font-size:10px;color:var(--green);margin-left:4px">↗</a>`:''}</td>
+    <td><select class="status-select ${statusColors[r.status]||'badge-gray'}" onchange="updateComp(${r.id},'status',this.value)"><option ${r.status==='Testen'?'selected':''}>Testen</option><option ${r.status==='Winnaar'?'selected':''}>Winnaar</option><option ${r.status==='Schalen'?'selected':''}>Schalen</option><option ${r.status==='Gestopt'?'selected':''}>Gestopt</option></select></td>
+    <td><input class="comp-input" value="${r.hypothese||''}" onchange="updateComp(${r.id},'hypothese',this.value)" placeholder="Hypothese..." style="min-width:180px"></td>
+    <td><select class="status-select" onchange="updateComp(${r.id},'geimporteerd',this.value)"><option ${r.geimporteerd==='Nee'?'selected':''}>Nee</option><option ${r.geimporteerd==='Ja'?'selected':''}>Ja</option></select></td>
+    <td><button class="btn-red" onclick="deleteComp(${r.id})">✕</button></td>
+  </tr>`).join('');
+  document.getElementById('compWrap').innerHTML=`<div style="overflow-x:auto"><table class="comp-table"><thead><tr><th>Markt</th><th>Code</th><th>Productnaam</th><th>Verkoop</th><th>Vergelijk</th><th>Korting%</th><th>Product URL</th><th>Startdatum</th><th>Bereik</th><th>Ad Spend</th><th>Gem/dag</th><th>Competitor URL</th><th>FB Bibliotheek</th><th>Status</th><th>Hypothese</th><th>Import?</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function updateComp(id,field,val){
+  const r=compData.find(r=>r.id===id);if(r)r[field]=val;
+}
+
+function deleteComp(id){
+  compData=compData.filter(r=>r.id!==id);renderComp();
+}
+
+// =====================
+// SCALING ADVISOR
+// =====================
+function saveAdvisorRules(){
+  advisorRules={
+    killRoas:parseFloat(document.getElementById('ruleKillRoas').value)||1.5,
+    killSpend:parseFloat(document.getElementById('ruleKillSpend').value)||30,
+    scaleRoas:parseFloat(document.getElementById('ruleScaleRoas').value)||3.0,
+    scaleDays:parseFloat(document.getElementById('ruleScaleDays').value)||3,
+    testCtr:parseFloat(document.getElementById('ruleTestCtr').value)||1.0
+  };
+  localStorage.setItem('av2_rules',JSON.stringify(advisorRules));
+  showToast('✓ Regels opgeslagen');
+}
+
+function renderAdvisor(){
+  if(!cfg.metaToken){document.getElementById('advisorContent').innerHTML='<div class="empty">Koppel eerst Meta Ads via het Meta Ads menu</div>';return;}
+  // Placeholder — wordt gevuld met echte Meta data na koppeling
+  document.getElementById('advisorContent').innerHTML='<div class="empty">Klik op Sync om adviezen te laden op basis van je Meta campagnes</div>';
+}
+
+// =====================
+// META ADS
+// =====================
+function saveMeta(){
+  const token=document.getElementById('metaTokenInput').value.trim();
+  const accountId=document.getElementById('metaAccountInput').value.trim();
+  if(!token||!accountId){showToast('Vul beide velden in');return;}
+  cfg.metaToken=token;
+  cfg.metaAccountId=accountId.startsWith('act_')?accountId:'act_'+accountId;
+  saveCfg();
+  document.getElementById('metaNavBadge').style.display='block';
+  showToast('✓ Meta gekoppeld');
+  loadData();
+}
+
+async function loadMeta(orders){
   try{
     const{start,end}=getPeriodDates(currentPeriod);
-    const since=start.toISOString().split('T')[0];const until=end.toISOString().split('T')[0];
-    const url=`https://graph.facebook.com/v19.0/${config.metaAccountId}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&access_token=${config.metaToken}`;
-    const resp=await fetch(url);const data=await resp.json();
-    if(data.error)throw new Error(data.error.message);
-    const spend=parseFloat(data.data?.[0]?.spend||0);
-    const netProfit=grossProfit-spend;const roas=spend>0?revenue/spend:0;const netMargin=revenue>0?netProfit/revenue*100:0;
-    document.getElementById('kpiAdSpend').textContent=eur(spend);
-    document.getElementById('kpiRoas').textContent=roas.toFixed(2)+'x';
-    document.getElementById('kpiNetProfit').textContent=eur(netProfit);
-    document.getElementById('kpiNetProfit').style.color=netProfit>=0?'var(--green)':'var(--red)';
-    document.getElementById('kpiNetMargin').textContent=netMargin.toFixed(1)+'% netto marge';
-    document.getElementById('kpiNetMargin').className='kpi-change '+(netMargin>=10?'up':netMargin>0?'neutral':'down');
-    document.getElementById('kpiRowMeta').style.display='grid';
+    const since=start.toISOString().split('T')[0];
+    const until=end.toISOString().split('T')[0];
+    const url=`https://graph.facebook.com/v19.0/${cfg.metaAccountId}/insights?fields=spend,actions&time_range={"since":"${since}","until":"${until}"}&access_token=${cfg.metaToken}`;
+    const r=await fetch(url);const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    const spend=parseFloat(d.data?.[0]?.spend||0);
+    const paid=orders.filter(o=>!['refunded','voided'].includes(o.financial_status));
+    const revenue=paid.reduce((s,o)=>s+parseFloat(o.total_price||0),0);
+    const totalCogs=paid.reduce((s,o)=>s+calcCogs(o),0);
+    const grossProfit=revenue-totalCogs;
+    const netProfit=grossProfit-spend;
+    const roas=spend>0?revenue/spend:0;
+    const beroas=revenue>0?spend/grossProfit:0;
+    const netMargin=revenue>0?netProfit/revenue*100:0;
+
+    document.getElementById('kAdSpend').textContent=eur(spend);
+    document.getElementById('kRoas').textContent=roas.toFixed(2)+'x';
+    document.getElementById('kBeroas').textContent=beroas.toFixed(2)+'x';
+    document.getElementById('kNetProfit').textContent=eur(netProfit);
+    document.getElementById('kNetProfit').className='kpi-val '+(netProfit>=0?'pos':'neg');
+    document.getElementById('kNetMargin').textContent=netMargin.toFixed(1)+'% netto';
+    document.getElementById('kNetMargin').className='badge '+(netMargin>=10?'badge-g':netMargin>0?'badge-o':'badge-r');
+    document.getElementById('metaBanner').style.display='none';
+    document.getElementById('metaKpiRow').style.display='grid';
+    document.getElementById('metaNavBadge').style.display='block';
+
   }catch(e){console.warn('Meta fout:',e.message);}
 }
 
-loadConfig();
-// Check of we terugkomen van OAuth callback
-const urlParams=new URLSearchParams(window.location.search);
-if(urlParams.get('token')&&urlParams.get('shop')){
+// =====================
+// INIT
+// =====================
+loadStorage();
+loadComp();
+
+// Check OAuth callback
+const urlP=new URLSearchParams(window.location.search);
+if(urlP.get('token')&&urlP.get('shop')){
   saveConfig();
+}
+
+if(cfg.domain&&cfg.accessToken){
   document.getElementById('setupScreen').style.display='none';
-  document.getElementById('dashboardScreen').style.display='block';
-  loadDashboard();
-} else if(config.domain&&config.accessToken){
-  document.getElementById('setupScreen').style.display='none';
-  document.getElementById('dashboardScreen').style.display='block';
-  loadDashboard();
+  document.getElementById('dashScreen').style.display='block';
+  if(cfg.metaToken)document.getElementById('metaNavBadge').style.display='block';
+  if(cfg.metaToken)document.getElementById('metaBanner').style.display='none';
+  // Fill advisor rules
+  if(advisorRules.killRoas)document.getElementById('ruleKillRoas').value=advisorRules.killRoas;
+  if(advisorRules.killSpend)document.getElementById('ruleKillSpend').value=advisorRules.killSpend;
+  if(advisorRules.scaleRoas)document.getElementById('ruleScaleRoas').value=advisorRules.scaleRoas;
+  if(advisorRules.scaleDays)document.getElementById('ruleScaleDays').value=advisorRules.scaleDays;
+  if(advisorRules.testCtr)document.getElementById('ruleTestCtr').value=advisorRules.testCtr;
+  loadData();
 }else{
   document.getElementById('setupScreen').style.display='block';
-  if(config.domain)document.getElementById('shopDomain').value=config.domain;
+  if(cfg.domain)document.getElementById('shopInput').value=cfg.domain;
 }
 </script>
 </body>
