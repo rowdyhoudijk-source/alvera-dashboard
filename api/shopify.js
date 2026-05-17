@@ -26,11 +26,11 @@ export default async function handler(req, res) {
       }
     }`,
     products: `{
-      products(first: 250) {
+      products(first: 250, sortKey: CREATED_AT, reverse: true) {
         edges {
           node {
-            id title legacyResourceId
-            variants(first: 5) { edges { node { id title } } }
+            id title legacyResourceId createdAt
+            variants(first: 5) { edges { node { id title price } } }
           }
         }
       }
