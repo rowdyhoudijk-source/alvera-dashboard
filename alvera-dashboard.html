@@ -883,52 +883,100 @@ async function loadMetaAds(){
   if(!cfg.metaToken)return;
   const wrap=document.getElementById('metaAdsContent');
   wrap.innerHTML='<div class="loading"><div class="spinner"></div> Advertenties ophalen...</div>';
-  const accounts=[{id:cfg.metaAccountId,label:'Ad Account 1'}];
-  if(cfg.metaAccountId2)accounts.push({id:cfg.metaAccountId2,label:'Ad Account 2'});
+  
+  // Correcte account namen
+  const accounts=[
+    {id:cfg.metaAccountId, label:'Ad Account 1'},
+    ...(cfg.metaAccountId2?[{id:cfg.metaAccountId2, label:'Ad Account 7'}]:[])
+  ];
+  
   const{start,end}=getPeriodDates(currentPeriod);
   const toLocalDate=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${day}`;};
-  const since=toLocalDate(start);const until=toLocalDate(end);
+  const since=toLocalDate(start);
+  const until=toLocalDate(end);
+  const insF='spend,impressions,reach,cpm,cpc,ctr,actions,cost_per_action_type,frequency';
+  
+  // Tabel header
+  const tableHeader=`<div style="display:grid;grid-template-columns:2fr 90px 80px 80px 80px 80px 70px 70px 70px 70px 70px 70px;gap:4px;padding:8px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">
+    <div>Campagne</div><div>Status</div><div style="text-align:right">Spend</div><div style="text-align:right">Bereik</div><div style="text-align:right">Impr.</div><div style="text-align:right">CPM</div><div style="text-align:right">CPC</div><div style="text-align:right">CTR</div><div style="text-align:right">Aankopen</div><div style="text-align:right">Kosten/aank.</div><div style="text-align:right">ROAS</div><div style="text-align:right">Freq.</div>
+  </div>`;
+
+  function campRow(camp, since, until){
+    const ins=camp.insights?.data?.[0]||{};
+    const spend=parseFloat(ins.spend||0);
+    const impr=parseInt(ins.impressions||0);
+    const reach=parseInt(ins.reach||0);
+    const cpm=parseFloat(ins.cpm||0);
+    const cpc=parseFloat(ins.cpc||0);
+    const ctr=parseFloat(ins.ctr||0);
+    const freq=parseFloat(ins.frequency||0);
+    const purchases=parseFloat((ins.actions||[]).find(a=>a.action_type==='purchase')?.value||0);
+    const purchaseVal=parseFloat((ins.actions||[]).find(a=>a.action_type==='purchase')?.value||0);
+    const costPerPurchase=purchases>0?spend/purchases:0;
+    // ROAS = purchase value / spend (Meta geeft purchase_roas terug als actions)
+    const purchaseRoasAction=(ins.actions||[]).find(a=>a.action_type==='omni_purchase'||a.action_type==='purchase');
+    const roas=spend>0&&purchaseVal>0?purchaseVal*20/spend:0; // schatting als geen conv value
+    const isActive=camp.status==='ACTIVE';
+    const sCls=isActive?'status-active':'status-paused';
+    const statusLabel=isActive?'Actief':'Gepauzeerd';
+    
+    return`<div class="campaign-row">
+      <div class="campaign-header" onclick="toggleAdsets('${camp.id}','${since}','${until}',this)" style="display:grid;grid-template-columns:2fr 90px 80px 80px 80px 80px 70px 70px 70px 70px 70px 70px;gap:4px;padding:10px 18px;cursor:pointer;background:#fff;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--green-l)'" onmouseout="this.style.background='#fff'">
+        <div style="display:flex;align-items:center;gap:8px"><span class="expand-icon" style="flex-shrink:0">▶</span><span style="font-weight:600;font-size:13px;color:var(--text)">${camp.name}</span></div>
+        <div><span class="${sCls}">${statusLabel}</span></div>
+        <div style="text-align:right;font-weight:600;font-size:13px">${spend>0?eur(spend):'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${reach>0?reach.toLocaleString('nl-NL'):'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${impr>0?impr.toLocaleString('nl-NL'):'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${cpm>0?'€'+cpm.toFixed(2):'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${cpc>0?'€'+cpc.toFixed(2):'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${ctr>0?ctr.toFixed(2)+'%':'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${purchases>0?purchases:'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${costPerPurchase>0?'€'+costPerPurchase.toFixed(2):'—'}</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">—</div>
+        <div style="text-align:right;font-size:12px;color:var(--muted)">${freq>0?freq.toFixed(2):'—'}</div>
+      </div>
+      <div class="adsets-wrap" id="adsets-${camp.id}" style="display:none"></div>
+    </div>`;
+  }
+
   let html='';
   for(const acc of accounts){
     try{
-      const timeRange=encodeURIComponent(`{"since":"${since}","until":"${until}"}`);
-      const insF='spend,impressions,reach,cpm,cpc,ctr,actions';
-      const campUrl=`https://graph.facebook.com/v19.0/act_${acc.id}/campaigns?fields=name,status,insights.time_range({"since":"${since}","until":"${until}"}){${insF}}&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]&limit=50&access_token=${cfg.metaToken}`;
-      const campRes=await fetch(campUrl);const campData=await campRes.json();
+      const campUrl=`https://graph.facebook.com/v19.0/act_${acc.id}/campaigns?fields=name,status,insights.time_range({"since":"${since}","until":"${until}"}){${insF}}&limit=100&access_token=${cfg.metaToken}`;
+      const campRes=await fetch(campUrl);
+      const campData=await campRes.json();
       if(campData.error)throw new Error(campData.error.message);
-      const campaigns=campData.data||[];
-      const accSpend=campaigns.reduce((s,c)=>s+parseFloat(c.insights?.data?.[0]?.spend||0),0);
-      html+=`<div class="ads-account"><div class="ads-account-header"><span>📣 ${acc.label} — act_${acc.id}</span><span>Totaal: ${eur(accSpend)}</span></div><div class="ads-account-body">`;
-      if(!campaigns.length)html+='<div class="empty">Geen campagnes gevonden</div>';
-      for(const camp of campaigns){
-        const ins=camp.insights?.data?.[0]||{};
-        const spend=parseFloat(ins.spend||0);
-        const impr=parseInt(ins.impressions||0);
-        const reach=parseInt(ins.reach||0);
-        const cpm=parseFloat(ins.cpm||0);
-        const cpc=parseFloat(ins.cpc||0);
-        const ctr=parseFloat(ins.ctr||0);
-        const purchases=(ins.actions||[]).find(a=>a.action_type==='purchase')?.value||0;
-        const sCls=camp.status==='ACTIVE'?'status-active':'status-paused';
-        html+=`<div class="campaign-row">
-          <div class="campaign-header" onclick="toggleAdsets('${camp.id}','${acc.id}','${since}','${until}',this)">
-            <span class="expand-icon">▶</span>
-            <span class="campaign-name">${camp.name}</span>
-            <span class="${sCls}">${camp.status==='ACTIVE'?'Actief':'Gepauzeerd'}</span>
-            <div class="campaign-stats">
-              <div><span class="campaign-stat-val">${eur(spend)}</span><span class="campaign-stat-label">Spend</span></div>
-              <div><span class="campaign-stat-val">${impr.toLocaleString('nl-NL')}</span><span class="campaign-stat-label">Impressies</span></div>
-              <div><span class="campaign-stat-val">${reach.toLocaleString('nl-NL')}</span><span class="campaign-stat-label">Bereik</span></div>
-              <div><span class="campaign-stat-val">€${cpm.toFixed(2)}</span><span class="campaign-stat-label">CPM</span></div>
-              <div><span class="campaign-stat-val">€${cpc.toFixed(2)}</span><span class="campaign-stat-label">CPC</span></div>
-              <div><span class="campaign-stat-val">${ctr.toFixed(2)}%</span><span class="campaign-stat-label">CTR</span></div>
-              <div><span class="campaign-stat-val">${purchases}</span><span class="campaign-stat-label">Aankopen</span></div>
-            </div>
+      
+      const all=campData.data||[];
+      const active=all.filter(c=>c.status==='ACTIVE');
+      const offline=all.filter(c=>c.status!=='ACTIVE');
+      const accSpend=all.reduce((s,c)=>s+parseFloat(c.insights?.data?.[0]?.spend||0),0);
+
+      html+=`<div class="ads-account" style="margin-bottom:20px">
+        <div class="ads-account-header">
+          <span>📣 ${acc.label}</span>
+          <span>Totaal spend: ${eur(accSpend)}</span>
+        </div>
+        <div class="ads-account-body">
+          ${tableHeader}
+          
+          <!-- ACTIEF -->
+          <div style="padding:10px 18px;background:var(--green-l);display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;color:var(--green);border-bottom:1px solid var(--border)">
+            <span>🟢 Actieve campagnes (${active.length})</span>
           </div>
-          <div class="adsets-wrap" id="adsets-${camp.id}"></div>
-        </div>`;
-      }
-      html+='</div></div>';
+          ${active.length?active.map(c=>campRow(c,since,until)).join(''):'<div class="empty">Geen actieve campagnes</div>'}
+          
+          <!-- OFFLINE -->
+          <div style="padding:10px 18px;background:#f3f4f6;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleOffline('offline-${acc.id}',this)">
+            <span>⚫ Offline campagnes (${offline.length})</span>
+            <span id="offline-icon-${acc.id}">▶</span>
+          </div>
+          <div id="offline-${acc.id}" style="display:none">
+            ${offline.length?offline.map(c=>campRow(c,since,until)).join(''):'<div class="empty">Geen offline campagnes</div>'}
+          </div>
+        </div>
+      </div>`;
+
     }catch(err){
       html+=`<div class="card" style="margin-bottom:16px"><div class="alert alert-error">⚠ Fout ${acc.label}: ${err.message}</div></div>`;
     }
@@ -936,7 +984,16 @@ async function loadMetaAds(){
   wrap.innerHTML=html;
 }
 
-async function toggleAdsets(campId,accId,since,until,headerEl){
+function toggleOffline(id, headerEl){
+  const wrap=document.getElementById(id);
+  const accId=id.replace('offline-','');
+  const icon=document.getElementById('offline-icon-'+accId);
+  const isOpen=wrap.style.display==='block';
+  wrap.style.display=isOpen?'none':'block';
+  icon.textContent=isOpen?'▶':'▼';
+}
+
+async function toggleAdsets(campId,since,until,headerEl){
   const wrap=document.getElementById(`adsets-${campId}`);
   const icon=headerEl.querySelector('.expand-icon');
   if(wrap.style.display==='block'){wrap.style.display='none';icon.style.transform='rotate(0)';return;}
