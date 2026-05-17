@@ -313,8 +313,9 @@ tbody tr:hover{background:#fafafa}
             <div class="card"><div class="card-head"><div class="card-title">Winstoverzicht</div></div><div id="breakdown"></div></div>
           </div>
           <div class="card">
-            <div class="card-head"><div><div class="card-title">Beste verkoopdag</div><div class="card-sub">Gemiddelde omzet per dag van de week</div></div></div>
+            <div class="card-head"><div><div class="card-title">Omzet per dag van de week</div><div class="card-sub">Gemiddelde omzet + dagelijkse tabel</div></div></div>
             <div class="chart-wrap" style="height:150px"><canvas id="dayChart"></canvas></div>
+            <div style="margin-top:16px;overflow-x:auto" id="dayTableWrap"></div>
           </div>
         </div>
 
@@ -656,7 +657,6 @@ function renderFinance(orders,start,end){
   renderBreakdown(revenue,totalCogs,profit);
   renderRevenueChart(orders,start,end);
   renderDayChart(orders);
-  renderDayChart(orders);
 }
 
 function renderBreakdownWithAds(revenue,cogs,adspend,netProfit){
@@ -698,15 +698,41 @@ function renderRevenueChart(orders,start,end){
 
 function renderDayChart(orders){
   const days=['Zo','Ma','Di','Wo','Do','Vr','Za'];
-  const totals=[0,0,0,0,0,0,0],counts=[0,0,0,0,0,0,0];
+  const totals=[0,0,0,0,0,0,0],counts=[0,0,0,0,0,0,0],orderCounts=[0,0,0,0,0,0,0];
   orders.filter(o=>!['refunded','voided'].includes(o.financial_status)).forEach(o=>{
     const d=new Date(o.created_at).getDay();
-    totals[d]+=parseFloat(o.total_price||0);counts[d]++;
+    totals[d]+=parseFloat(o.total_price||0);
+    counts[d]++;
+    orderCounts[d]++;
   });
   const avgs=totals.map((t,i)=>counts[i]>0?Math.round(t/counts[i]):0);
   if(dayChart)dayChart.destroy();
   const ctx=document.getElementById('dayChart').getContext('2d');
-  dayChart=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{data:avgs,backgroundColor:'rgba(22,160,90,.15)',borderColor:'#16a05a',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'},color:'#6b7280'}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',callback:v=>'€'+v.toLocaleString('nl-NL')}}}}});
+  dayChart=new Chart(ctx,{type:'bar',data:{labels:days,datasets:[{data:avgs,backgroundColor:avgs.map(v=>v===Math.max(...avgs)?'rgba(22,160,90,.4)':'rgba(22,160,90,.15)'),borderColor:'#16a05a',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+eur(c.raw)}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,family:'DM Sans'},color:'#6b7280'}},y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10,family:'DM Sans'},color:'#9ca3af',callback:v=>'€'+v.toLocaleString('nl-NL')}}}}});
+
+  // Dagelijkse tabel
+  const bestDay=avgs.indexOf(Math.max(...avgs));
+  const rows=days.map((d,i)=>{
+    const isBest=i===bestDay&&totals[i]>0;
+    return`<tr style="${isBest?'background:var(--green-l);font-weight:600':''}">
+      <td>${d}</td>
+      <td style="text-align:right">${orderCounts[i]||'—'}</td>
+      <td style="text-align:right;font-weight:600;color:${totals[i]>0?'var(--text)':'var(--muted)'}">${totals[i]>0?eur(totals[i]):'—'}</td>
+      <td style="text-align:right;color:var(--muted)">${avgs[i]>0?eur(avgs[i]):'—'}</td>
+      <td style="text-align:center">${isBest?'🏆':''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('dayTableWrap').innerHTML=`
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:6px 0;font-size:10px;color:var(--muted);text-transform:uppercase">Dag</th>
+        <th style="text-align:right;padding:6px 0;font-size:10px;color:var(--muted);text-transform:uppercase">Orders</th>
+        <th style="text-align:right;padding:6px 0;font-size:10px;color:var(--muted);text-transform:uppercase">Omzet</th>
+        <th style="text-align:right;padding:6px 0;font-size:10px;color:var(--muted);text-transform:uppercase">Gemiddeld</th>
+        <th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // =====================
