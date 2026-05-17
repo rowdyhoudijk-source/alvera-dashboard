@@ -30,6 +30,7 @@ export default async function handler(req, res) {
         edges {
           node {
             id title legacyResourceId createdAt
+            featuredImage { url altText }
             variants(first: 5) { edges { node { id title price } } }
           }
         }
