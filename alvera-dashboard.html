@@ -897,7 +897,7 @@ async function loadMetaAds(){
   const insF='spend,impressions,reach,cpm,cpc,ctr,actions,cost_per_action_type,frequency';
   
   // Tabel header — sticky binnen zijn eigen container
-  const tableHeader=`<div style="position:sticky;top:0;z-index:5;display:grid;grid-template-columns:2fr 90px 80px 80px 80px 80px 70px 70px 70px 70px 70px 70px;gap:4px;padding:8px 18px;background:var(--bg);border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">
+  const tableHeader=`<div style="position:sticky;top:49px;z-index:10;display:grid;grid-template-columns:2fr 90px 80px 80px 80px 80px 70px 70px 70px 70px 70px 70px;gap:4px;padding:8px 18px;background:var(--bg);border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;box-shadow:0 2px 4px rgba(0,0,0,0.04)">
     <div>Campagne</div><div>Status</div><div style="text-align:right">Spend</div><div style="text-align:right">Bereik</div><div style="text-align:right">Impr.</div><div style="text-align:right">CPM</div><div style="text-align:right">CPC</div><div style="text-align:right">CTR</div><div style="text-align:right">Aankopen</div><div style="text-align:right">Kosten/aank.</div><div style="text-align:right">ROAS</div><div style="text-align:right">Freq.</div>
   </div>`;
 
@@ -965,7 +965,7 @@ async function loadMetaAds(){
           <div style="padding:10px 18px;background:var(--green-l);display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;color:var(--green);border-bottom:1px solid var(--border)">
             <span>🟢 Actieve campagnes (${active.length})</span>
           </div>
-          <div style="max-height:550px;overflow-y:auto">
+          <div>
           ${active.length?active.map(c=>campRow(c,since,until)).join(''):'<div class="empty">Geen actieve campagnes</div>'}
           
           <!-- OFFLINE -->
