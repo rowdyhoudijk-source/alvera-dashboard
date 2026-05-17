@@ -850,12 +850,20 @@ function saveMeta(){
 async function loadMeta(orders){
   try{
     const{start,end}=getPeriodDates(currentPeriod);
-    const since=start.toISOString().split('T')[0];
-    const until=end.toISOString().split('T')[0];
-    const url=`https://graph.facebook.com/v19.0/${cfg.metaAccountId}/insights?fields=spend,actions&time_range={"since":"${since}","until":"${until}"}&access_token=${cfg.metaToken}`;
+    // Gebruik lokale datum in plaats van UTC om tijdzone problemen te voorkomen
+    const toLocalDate=d=>{
+      const y=d.getFullYear();
+      const m=String(d.getMonth()+1).padStart(2,'0');
+      const day=String(d.getDate()).padStart(2,'0');
+      return`${y}-${m}-${day}`;
+    };
+    const since=toLocalDate(start);
+    const until=toLocalDate(end);
+    const url=`https://graph.facebook.com/v19.0/act_${cfg.metaAccountId.replace('act_','')}/insights?fields=spend&time_range={"since":"${since}","until":"${until}"}&time_increment=1&access_token=${cfg.metaToken}`;
     const r=await fetch(url);const d=await r.json();
     if(d.error)throw new Error(d.error.message);
-    const spend=parseFloat(d.data?.[0]?.spend||0);
+    // Tel alle dagen op in de periode
+    const spend=(d.data||[]).reduce((s,row)=>s+parseFloat(row.spend||0),0);
     const paid=orders.filter(o=>!['refunded','voided'].includes(o.financial_status));
     const revenue=paid.reduce((s,o)=>s+parseFloat(o.total_price||0),0);
     const totalCogs=paid.reduce((s,o)=>s+calcCogs(o),0);
