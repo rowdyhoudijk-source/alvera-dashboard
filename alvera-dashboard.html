@@ -391,15 +391,28 @@ tbody tr:hover{background:#fafafa}
         <!-- META PAGE -->
         <div id="page-meta" style="display:none">
           <div class="card" style="margin-bottom:16px">
-            <div class="card-head"><div class="card-title">Meta Ads Koppeling</div><button class="btn-ghost btn-sm" onclick="toggleMetaSettings()">⚙ Instellingen</button></div>
-            <div id="metaSettingsWrap" style="display:none">
-              <div class="form-group"><label class="form-label">Meta Access Token</label><input class="form-input" id="metaTokenInput" placeholder="EAABwzLixnjYBO..." type="password"/></div>
+            <div class="card-head">
+              <div><div class="card-title">Meta Ads Koppeling</div><div class="card-sub" id="metaStatusText">Niet gekoppeld</div></div>
+              <button class="btn-ghost btn-sm" onclick="toggleMetaSettings()">⚙ Handmatig instellen</button>
+            </div>
+            
+            <!-- OAuth knop -->
+            <div id="metaOAuthWrap" style="margin-bottom:16px">
+              <button class="btn" onclick="startMetaOAuth()" style="background:#1877f2;padding:10px 20px;font-size:13px">
+                <span style="font-size:16px">f</span> Verbinden via Facebook →
+              </button>
+              <p style="font-size:12px;color:var(--muted);margin-top:8px">Klik om in te loggen met je Facebook account — token wordt automatisch vernieuwd.</p>
+            </div>
+
+            <!-- Handmatig instellen -->
+            <div id="metaSettingsWrap" style="display:none;border-top:1px solid var(--border);padding-top:16px;margin-top:8px">
+              <div class="form-group"><label class="form-label">Meta Access Token (handmatig)</label><input class="form-input" id="metaTokenInput" placeholder="EAABwzLixnjYBO..." type="password"/></div>
               <div class="form-group"><label class="form-label">Ad Account ID 1</label><input class="form-input" id="metaAccountInput" placeholder="908246051371226"/></div>
               <div class="form-group"><label class="form-label">Ad Account ID 2 (optioneel)</label><input class="form-input" id="metaAccountInput2" placeholder="1338642063847885"/></div>
-              <button class="btn" onclick="saveMeta()">Koppelen →</button>
+              <button class="btn" onclick="saveMeta()">Opslaan →</button>
             </div>
           </div>
-          <div id="metaAdsContent"><div class="empty">Klik op Sync om je advertenties te laden</div></div>
+          <div id="metaAdsContent"><div class="empty">Koppel Meta Ads om je advertenties te zien</div></div>
         </div>
 
       </div>
@@ -448,7 +461,12 @@ function showPage(page, el){
   if(page==='competitor')renderComp();
   if(page==='advisor')renderAdvisor();
   if(page==='meta'){
-    if(cfg.metaToken)document.getElementById('metaTokenInput').value=cfg.metaToken;
+    if(cfg.metaToken){
+      const expires=cfg.metaExpiresAt?new Date(parseInt(cfg.metaExpiresAt)).toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'}):'onbekend';
+      document.getElementById('metaStatusText').textContent='✓ Gekoppeld — verloopt '+expires;
+      document.getElementById('metaStatusText').style.color='var(--green)';
+    }
+    if(cfg.metaTokenInput&&cfg.metaToken)document.getElementById('metaTokenInput').value=cfg.metaToken;
     if(cfg.metaAccountId)document.getElementById('metaAccountInput').value=cfg.metaAccountId;
     if(cfg.metaAccountId2)document.getElementById('metaAccountInput2').value=cfg.metaAccountId2;
     if(cfg.metaToken)loadMetaAds();
@@ -874,6 +892,11 @@ function renderAdvisor(){
 // =====================
 // META ADS
 // =====================
+function startMetaOAuth(){
+  // Sla ad account IDs op voor na de OAuth
+  window.location.href='/api/meta-auth';
+}
+
 function toggleMetaSettings(){
   const w=document.getElementById('metaSettingsWrap');
   w.style.display=w.style.display==='none'?'block':'none';
@@ -1154,10 +1177,24 @@ async function loadMeta(orders){
 loadStorage();
 loadComp();
 
-// Check OAuth callback
+// Check OAuth callbacks
 const urlP=new URLSearchParams(window.location.search);
+
+// Shopify callback
 if(urlP.get('token')&&urlP.get('shop')){
   saveConfig();
+}
+
+// Meta OAuth callback
+if(urlP.get('meta_token')){
+  cfg.metaToken=urlP.get('meta_token');
+  cfg.metaExpiresAt=urlP.get('meta_expires');
+  // Bewaar ook de account IDs als die al ingesteld waren
+  if(!cfg.metaAccountId) cfg.metaAccountId='1338642063847885';
+  if(!cfg.metaAccountId2) cfg.metaAccountId2='908246051371226';
+  saveCfg();
+  window.history.replaceState({},'',window.location.pathname);
+  showToast('✓ Meta gekoppeld!');
 }
 
 if(cfg.domain&&cfg.accessToken){
