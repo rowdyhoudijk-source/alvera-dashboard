@@ -957,13 +957,15 @@ async function loadMetaAds(){
           <span>📣 ${acc.label}</span>
           <span>Totaal spend: ${eur(accSpend)}</span>
         </div>
-        <div class="ads-account-body" style="max-height:600px;overflow-y:auto;position:relative">
+        <div class="ads-account-body">
           ${tableHeader}
+          <div style="max-height:550px;overflow-y:auto">
           
           <!-- ACTIEF -->
           <div style="padding:10px 18px;background:var(--green-l);display:flex;align-items:center;gap:8px;font-weight:600;font-size:12px;color:var(--green);border-bottom:1px solid var(--border)">
             <span>🟢 Actieve campagnes (${active.length})</span>
           </div>
+          <div style="max-height:550px;overflow-y:auto">
           ${active.length?active.map(c=>campRow(c,since,until)).join(''):'<div class="empty">Geen actieve campagnes</div>'}
           
           <!-- OFFLINE -->
@@ -973,6 +975,7 @@ async function loadMetaAds(){
           </div>
           <div id="offline-${acc.id}" style="display:none">
             ${offline.length?offline.map(c=>campRow(c,since,until)).join(''):'<div class="empty">Geen offline campagnes</div>'}
+          </div>
           </div>
         </div>
       </div>`;
