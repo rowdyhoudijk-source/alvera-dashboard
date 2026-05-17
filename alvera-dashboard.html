@@ -114,7 +114,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .table-search{width:220px;padding:7px 12px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);outline:none;background:var(--bg)}
 .table-search:focus{border-color:var(--green);background:var(--white)}
 table{width:100%;border-collapse:collapse}
-thead th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:10px 10px 10px 0;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:49px;background:var(--white);z-index:5;box-shadow:0 1px 0 var(--border)}
+thead th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:10px 10px 10px 0;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--white)}
 tbody td{padding:10px 10px 10px 0;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:#fafafa}
@@ -320,7 +320,14 @@ tbody tr:hover{background:#fafafa}
               <div><div class="card-title">COGS & Producten</div><div class="card-sub">Nieuwste producten bovenaan — vul inkoopprijzen in per aantal</div></div>
               <input class="table-search" id="cogsSearch" placeholder="🔍 Zoek product..." oninput="renderCogs()">
             </div>
-            <div style="overflow-x:auto" id="cogsWrap"></div>
+            <div style="max-height:70vh;overflow-y:auto;overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse">
+            <thead style="position:sticky;top:0;z-index:5;background:var(--white)">
+            <tr id="cogsHeaderRow"></tr>
+            </thead>
+            <tbody id="cogsBodyRows"></tbody>
+            </table>
+            </div>
             <div style="margin-top:14px;display:flex;justify-content:flex-end">
               <button class="btn" onclick="saveCogs()">💾 COGS opslaan</button>
             </div>
@@ -599,13 +606,11 @@ function renderFinance(orders,start,end){
   document.getElementById('kProfit').className='kpi-val '+(profit>=0?'pos':'neg');
   document.getElementById('kMargin').textContent=margin.toFixed(1)+'% marge';
   document.getElementById('kMargin').className='badge '+(margin>=20?'badge-g':margin>0?'badge-o':'badge-r');
-  document.getElementById('kNetWinst').textContent=eur(profit);
-  document.getElementById('kNetWinst').className='kpi-val '+(profit>=0?'pos':'neg');
-  document.getElementById('kNetWinstSub').textContent='Na COGS';
   document.getElementById('kCogs').textContent=eur(totalCogs);
 
   renderBreakdown(revenue,totalCogs,profit);
   renderRevenueChart(orders,start,end);
+  renderDayChart(orders);
   renderDayChart(orders);
 }
 
@@ -717,7 +722,9 @@ function renderCogs(){
       ${roasCols}
     </tr>`;
   }).join('');
-  document.getElementById('cogsWrap').innerHTML=`<table><thead><tr><th>Product</th><th>Varianten</th><th>COGS 1 stuk</th><th>COGS 2 stuks</th><th>COGS 3+ stuks</th><th>Verkoop</th><th>BE-ROAS</th><th>ROAS 20%</th><th>ROAS 30%</th><th>ROAS 40%</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const headerCols=['Product','Varianten','COGS 1 stuk','COGS 2 stuks','COGS 3+ stuks','Verkoop','BE-ROAS','ROAS 20%','ROAS 30%','ROAS 40%'];
+  document.getElementById('cogsHeaderRow').innerHTML=headerCols.map(h=>`<th style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:10px 10px 10px 0;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--white)">${h}</th>`).join('');
+  document.getElementById('cogsBodyRows').innerHTML=rows;
   renderBeRoas(prods);
 }
 
