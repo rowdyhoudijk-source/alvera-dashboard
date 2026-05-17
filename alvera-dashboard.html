@@ -282,13 +282,6 @@ tbody tr:hover{background:#fafafa}
             <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Netto winst</div><div class="kpi-icon g">💰</div></div><div class="kpi-val" id="kNetProfit">€0</div><div class="kpi-sub"><span class="badge badge-gray" id="kNetMargin">0%</span></div></div>
           </div>
 
-          <!-- PRIJS SUGGESTIES (altijd zichtbaar als COGS ingevuld) -->
-          <div class="kpi-grid fade-in" id="priceSuggestRow" style="display:none">
-            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Min. prijs (BE-ROAS 1.5x)</div><div class="kpi-icon r">⚖️</div></div><div class="kpi-val" id="kPriceBe">€0</div><div class="kpi-sub">Gemiddeld over producten</div></div>
-            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Prijs bij 20% winst</div><div class="kpi-icon o">📊</div></div><div class="kpi-val" id="kPrice20">€0</div><div class="kpi-sub">Na COGS</div></div>
-            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Prijs bij 30% winst</div><div class="kpi-icon g">📊</div></div><div class="kpi-val" id="kPrice30">€0</div><div class="kpi-sub">Na COGS</div></div>
-            <div class="kpi-card"><div class="kpi-head"><div class="kpi-label">Prijs bij 35% winst</div><div class="kpi-icon g">💎</div></div><div class="kpi-val" id="kPrice35">€0</div><div class="kpi-sub">Na COGS</div></div>
-          </div>
           <div class="grid-2">
             <div class="card"><div class="card-head"><div><div class="card-title">Omzet trend</div><div class="card-sub" id="chartSub">Per dag</div></div></div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
             <div class="card"><div class="card-head"><div class="card-title">Winstoverzicht</div></div><div id="breakdown"></div></div>
@@ -611,18 +604,6 @@ function renderFinance(orders,start,end){
   document.getElementById('kMargin').className='badge '+(margin>=20?'badge-g':margin>0?'badge-o':'badge-r');
   document.getElementById('kCogs').textContent=eur(totalCogs);
 
-  // Prijssuggesties op basis van gemiddelde COGS per bestelling
-  const avgCogs=paid.length>0?totalCogs/paid.length:0;
-  if(avgCogs>0){
-    document.getElementById('kPriceBe').textContent=eur(avgCogs*1.5);
-    document.getElementById('kPrice20').textContent=eur(avgCogs/0.8);
-    document.getElementById('kPrice30').textContent=eur(avgCogs/0.7);
-    document.getElementById('kPrice35').textContent=eur(avgCogs/0.65);
-    document.getElementById('priceSuggestRow').style.display='grid';
-  }else{
-    document.getElementById('priceSuggestRow').style.display='none';
-  }
-
   renderBreakdown(revenue,totalCogs,profit);
   renderRevenueChart(orders,start,end);
   renderDayChart(orders);
@@ -706,17 +687,46 @@ function renderCogs(){
   const rows=prods.map(p=>{
     const c=cogsData[p.id]||{};
     const img=p.image?`<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;margin-right:10px;flex-shrink:0" onerror="this.style.display='none'">`:`<div style="width:40px;height:40px;background:var(--bg);border-radius:6px;margin-right:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px">📦</div>`;
+    
+    // ROAS berekeningen op basis van verkoopprijs en marge
+    const verkoop=parseFloat(p.variants?.[0]?.price||0);
+    const cogs1=parseFloat(c.qty1||0);
+    let roasCols='<td colspan="4" style="color:var(--muted);font-size:11px">Vul COGS + verkoopprijs in</td>';
+    if(cogs1>0 && verkoop>0){
+      const marge=verkoop-cogs1;
+      // BE-ROAS = verkoopprijs / marge
+      const beRoas=marge>0?(verkoop/marge).toFixed(2):'∞';
+      // 20% = verkoopprijs / (marge - verkoopprijs * 0.2)
+      const roas20=marge-(verkoop*0.2)>0?(verkoop/(marge-(verkoop*0.2))).toFixed(2):'∞';
+      const roas30=marge-(verkoop*0.3)>0?(verkoop/(marge-(verkoop*0.3))).toFixed(2):'∞';
+      const roas40=marge-(verkoop*0.4)>0?(verkoop/(marge-(verkoop*0.4))).toFixed(2):'∞';
+      roasCols=`
+        <td><span class="badge badge-r">${beRoas}x</span></td>
+        <td><span class="badge badge-o">${roas20}x</span></td>
+        <td><span class="badge badge-g">${roas30}x</span></td>
+        <td><span class="badge badge-g">${roas40}x</span></td>`;
+    }
+
     return`<tr>
       <td style="min-width:260px"><div style="display:flex;align-items:center">${img}<span style="font-weight:500">${p.title}</span></div></td>
       <td style="color:var(--muted);font-size:12px">${p.variants?.length||1} var.</td>
       <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">1x</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty1" value="${c.qty1||''}" placeholder="0.00" onchange="autoSaveCogs(this)"></div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">2x</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty2" value="${c.qty2||''}" placeholder="0.00" onchange="autoSaveCogs(this)"></div></td>
       <td><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">3x+</span><input class="cogs-inp" type="number" step=".01" min="0" data-id="${p.id}" data-qty="qty3" value="${c.qty3||''}" placeholder="0.00" onchange="autoSaveCogs(this)"></div></td>
-      <td style="color:var(--muted);font-size:11px">${p.variants?.[0]?.price?eur(p.variants[0].price):'-'}</td>
+      <td style="color:var(--muted);font-size:11px">${verkoop>0?eur(verkoop):'-'}</td>
+      ${roasCols}
     </tr>`;
   }).join('');
-  document.getElementById('cogsWrap').innerHTML=`<table><thead><tr><th>Product</th><th>Varianten</th><th>COGS 1 stuk</th><th>COGS 2 stuks</th><th>COGS 3+ stuks</th><th>Verkoopprijs</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('cogsWrap').innerHTML=`<table><thead><tr><th>Product</th><th>Varianten</th><th>COGS 1 stuk</th><th>COGS 2 stuks</th><th>COGS 3+ stuks</th><th>Verkoop</th><th>BE-ROAS</th><th>ROAS 20%</th><th>ROAS 30%</th><th>ROAS 40%</th></tr></thead><tbody>${rows}</tbody></table>`;
   renderBeRoas(prods);
+}
+
+function autoSaveCogs(inp){
+  const id=inp.dataset.id, qty=inp.dataset.qty, val=parseFloat(inp.value)||0;
+  if(!cogsData[id])cogsData[id]={};
+  cogsData[id][qty]=val;
+  localStorage.setItem('av2_cogs',JSON.stringify(cogsData));
+  renderCogs(); // herbereken ROAS kolommen direct
 }
 
 function saveCogs(){
