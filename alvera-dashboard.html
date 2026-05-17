@@ -180,6 +180,31 @@ tbody tr:hover{background:#fafafa}
 @media(max-width:768px){.sidebar{display:none}.main{margin-left:0}.grid-2{grid-template-columns:1fr}}
 .fade-in{animation:fadeUp .3s ease forwards}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ads-account{margin-bottom:20px}
+.ads-account-header{background:var(--green);color:#fff;padding:12px 18px;border-radius:var(--radius) var(--radius) 0 0;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px}
+.ads-account-body{background:var(--white);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius)}
+.campaign-row{border-bottom:1px solid var(--border)}
+.campaign-header{padding:12px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;background:#fafafa;transition:background .15s}
+.campaign-header:hover{background:var(--green-l)}
+.campaign-name{font-weight:600;font-size:13px;flex:1}
+.campaign-stats{display:flex;gap:16px;font-size:11px}
+.campaign-stat-val{font-weight:600;color:var(--text);font-size:13px;display:block}
+.campaign-stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.adsets-wrap{padding:0 18px 12px 36px;display:none}
+.adset-row{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden}
+.adset-header{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;background:#fff;transition:background .15s}
+.adset-header:hover{background:var(--green-l)}
+.adset-name{font-weight:500;font-size:12px;flex:1}
+.adset-stats{display:flex;gap:14px;font-size:11px;color:var(--muted)}
+.ads-list{padding:8px 14px;background:#fafafa;display:none}
+.ad-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ad-row:last-child{border-bottom:none}
+.ad-thumb{width:36px;height:36px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--border)}
+.ad-name{flex:1;font-weight:500;color:var(--text)}
+.ad-stats{display:flex;gap:14px;color:var(--muted)}
+.status-active{background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.status-paused{background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.expand-icon{font-size:10px;color:var(--muted);transition:transform .2s;margin-right:4px}
 </style>
 </head>
 <body>
@@ -365,17 +390,16 @@ tbody tr:hover{background:#fafafa}
 
         <!-- META PAGE -->
         <div id="page-meta" style="display:none">
-          <div class="card">
-            <div class="card-head"><div class="card-title">Meta Ads Koppeling</div></div>
-            <div class="form-group"><label class="form-label">Meta Access Token</label><input class="form-input" id="metaTokenInput" placeholder="EAABwzLixnjYBO..." type="password"/></div>
-            <div class="form-group"><label class="form-label">Ad Account ID 1</label><input class="form-input" id="metaAccountInput" placeholder="908246051371226"/><div class="form-hint">Eerste ad account voor Alvera Valencia</div></div>
-            <div class="form-group"><label class="form-label">Ad Account ID 2 (optioneel)</label><input class="form-input" id="metaAccountInput2" placeholder="1338642063847885"/><div class="form-hint">Tweede ad account voor Alvera Valencia</div></div>
-            <button class="btn" onclick="saveMeta()">Koppelen →</button>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><div class="card-title">Meta Ads Koppeling</div><button class="btn-ghost btn-sm" onclick="toggleMetaSettings()">⚙ Instellingen</button></div>
+            <div id="metaSettingsWrap" style="display:none">
+              <div class="form-group"><label class="form-label">Meta Access Token</label><input class="form-input" id="metaTokenInput" placeholder="EAABwzLixnjYBO..." type="password"/></div>
+              <div class="form-group"><label class="form-label">Ad Account ID 1</label><input class="form-input" id="metaAccountInput" placeholder="908246051371226"/></div>
+              <div class="form-group"><label class="form-label">Ad Account ID 2 (optioneel)</label><input class="form-input" id="metaAccountInput2" placeholder="1338642063847885"/></div>
+              <button class="btn" onclick="saveMeta()">Koppelen →</button>
+            </div>
           </div>
-          <div class="card" id="metaCampaignsCard" style="display:none">
-            <div class="card-head"><div><div class="card-title">Campagnes</div><div class="card-sub" id="metaCampaignSub">—</div></div></div>
-            <div id="metaCampaignsWrap"></div>
-          </div>
+          <div id="metaAdsContent"><div class="empty">Klik op Sync om je advertenties te laden</div></div>
         </div>
 
       </div>
@@ -427,6 +451,7 @@ function showPage(page, el){
     if(cfg.metaToken)document.getElementById('metaTokenInput').value=cfg.metaToken;
     if(cfg.metaAccountId)document.getElementById('metaAccountInput').value=cfg.metaAccountId;
     if(cfg.metaAccountId2)document.getElementById('metaAccountInput2').value=cfg.metaAccountId2;
+    if(cfg.metaToken)loadMetaAds();
   }
 }
 
@@ -849,6 +874,153 @@ function renderAdvisor(){
 // =====================
 // META ADS
 // =====================
+function toggleMetaSettings(){
+  const w=document.getElementById('metaSettingsWrap');
+  w.style.display=w.style.display==='none'?'block':'none';
+}
+
+async function loadMetaAds(){
+  if(!cfg.metaToken)return;
+  const wrap=document.getElementById('metaAdsContent');
+  wrap.innerHTML='<div class="loading"><div class="spinner"></div> Advertenties ophalen...</div>';
+  const accounts=[{id:cfg.metaAccountId,label:'Ad Account 1'}];
+  if(cfg.metaAccountId2)accounts.push({id:cfg.metaAccountId2,label:'Ad Account 2'});
+  const{start,end}=getPeriodDates(currentPeriod);
+  const toLocalDate=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${day}`;};
+  const since=toLocalDate(start);const until=toLocalDate(end);
+  let html='';
+  for(const acc of accounts){
+    try{
+      const timeRange=encodeURIComponent(`{"since":"${since}","until":"${until}"}`);
+      const insF='spend,impressions,reach,cpm,cpc,ctr,actions';
+      const campUrl=`https://graph.facebook.com/v19.0/act_${acc.id}/campaigns?fields=name,status,insights.time_range({"since":"${since}","until":"${until}"}){${insF}}&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]&limit=50&access_token=${cfg.metaToken}`;
+      const campRes=await fetch(campUrl);const campData=await campRes.json();
+      if(campData.error)throw new Error(campData.error.message);
+      const campaigns=campData.data||[];
+      const accSpend=campaigns.reduce((s,c)=>s+parseFloat(c.insights?.data?.[0]?.spend||0),0);
+      html+=`<div class="ads-account"><div class="ads-account-header"><span>📣 ${acc.label} — act_${acc.id}</span><span>Totaal: ${eur(accSpend)}</span></div><div class="ads-account-body">`;
+      if(!campaigns.length)html+='<div class="empty">Geen campagnes gevonden</div>';
+      for(const camp of campaigns){
+        const ins=camp.insights?.data?.[0]||{};
+        const spend=parseFloat(ins.spend||0);
+        const impr=parseInt(ins.impressions||0);
+        const reach=parseInt(ins.reach||0);
+        const cpm=parseFloat(ins.cpm||0);
+        const cpc=parseFloat(ins.cpc||0);
+        const ctr=parseFloat(ins.ctr||0);
+        const purchases=(ins.actions||[]).find(a=>a.action_type==='purchase')?.value||0;
+        const sCls=camp.status==='ACTIVE'?'status-active':'status-paused';
+        html+=`<div class="campaign-row">
+          <div class="campaign-header" onclick="toggleAdsets('${camp.id}','${acc.id}','${since}','${until}',this)">
+            <span class="expand-icon">▶</span>
+            <span class="campaign-name">${camp.name}</span>
+            <span class="${sCls}">${camp.status==='ACTIVE'?'Actief':'Gepauzeerd'}</span>
+            <div class="campaign-stats">
+              <div><span class="campaign-stat-val">${eur(spend)}</span><span class="campaign-stat-label">Spend</span></div>
+              <div><span class="campaign-stat-val">${impr.toLocaleString('nl-NL')}</span><span class="campaign-stat-label">Impressies</span></div>
+              <div><span class="campaign-stat-val">${reach.toLocaleString('nl-NL')}</span><span class="campaign-stat-label">Bereik</span></div>
+              <div><span class="campaign-stat-val">€${cpm.toFixed(2)}</span><span class="campaign-stat-label">CPM</span></div>
+              <div><span class="campaign-stat-val">€${cpc.toFixed(2)}</span><span class="campaign-stat-label">CPC</span></div>
+              <div><span class="campaign-stat-val">${ctr.toFixed(2)}%</span><span class="campaign-stat-label">CTR</span></div>
+              <div><span class="campaign-stat-val">${purchases}</span><span class="campaign-stat-label">Aankopen</span></div>
+            </div>
+          </div>
+          <div class="adsets-wrap" id="adsets-${camp.id}"></div>
+        </div>`;
+      }
+      html+='</div></div>';
+    }catch(err){
+      html+=`<div class="card" style="margin-bottom:16px"><div class="alert alert-error">⚠ Fout ${acc.label}: ${err.message}</div></div>`;
+    }
+  }
+  wrap.innerHTML=html;
+}
+
+async function toggleAdsets(campId,accId,since,until,headerEl){
+  const wrap=document.getElementById(`adsets-${campId}`);
+  const icon=headerEl.querySelector('.expand-icon');
+  if(wrap.style.display==='block'){wrap.style.display='none';icon.style.transform='rotate(0)';return;}
+  wrap.style.display='block';icon.style.transform='rotate(90deg)';
+  if(wrap.dataset.loaded)return;
+  wrap.dataset.loaded='1';
+  wrap.innerHTML='<div class="loading" style="padding:16px 0"><div class="spinner"></div> Ad sets laden...</div>';
+  try{
+    const insF='spend,impressions,ctr,cpc,cpm,actions';
+    const url=`https://graph.facebook.com/v19.0/${campId}/adsets?fields=name,status,daily_budget,insights.time_range({"since":"${since}","until":"${until}"}){${insF}}&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]&limit=50&access_token=${cfg.metaToken}`;
+    const res=await fetch(url);const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    const adsets=data.data||[];
+    let html='';
+    for(const adset of adsets){
+      const ins=adset.insights?.data?.[0]||{};
+      const spend=parseFloat(ins.spend||0);
+      const impr=parseInt(ins.impressions||0);
+      const ctr=parseFloat(ins.ctr||0);
+      const cpc=parseFloat(ins.cpc||0);
+      const purchases=(ins.actions||[]).find(a=>a.action_type==='purchase')?.value||0;
+      const sCls=adset.status==='ACTIVE'?'status-active':'status-paused';
+      html+=`<div class="adset-row">
+        <div class="adset-header" onclick="toggleAds('${adset.id}','${since}','${until}',this)">
+          <span class="expand-icon">▶</span>
+          <span class="adset-name">${adset.name}</span>
+          <span class="${sCls}">${adset.status==='ACTIVE'?'Actief':'Gepauzeerd'}</span>
+          <div class="adset-stats">
+            <span><b>${eur(spend)}</b></span>
+            <span><b>${impr.toLocaleString('nl-NL')}</b> impr.</span>
+            <span><b>${ctr.toFixed(2)}%</b> CTR</span>
+            <span><b>€${cpc.toFixed(2)}</b> CPC</span>
+            <span><b>${purchases}</b> aankopen</span>
+          </div>
+        </div>
+        <div class="ads-list" id="ads-${adset.id}"></div>
+      </div>`;
+    }
+    wrap.innerHTML=html||'<div class="empty" style="padding:12px">Geen ad sets</div>';
+  }catch(err){wrap.innerHTML=`<div class="alert alert-error">⚠ ${err.message}</div>`;}
+}
+
+async function toggleAds(adsetId,since,until,headerEl){
+  const wrap=document.getElementById(`ads-${adsetId}`);
+  const icon=headerEl.querySelector('.expand-icon');
+  if(wrap.style.display==='block'){wrap.style.display='none';icon.style.transform='rotate(0)';return;}
+  wrap.style.display='block';icon.style.transform='rotate(90deg)';
+  if(wrap.dataset.loaded)return;
+  wrap.dataset.loaded='1';
+  wrap.innerHTML='<div class="loading" style="padding:10px 0"><div class="spinner"></div></div>';
+  try{
+    const insF='spend,impressions,ctr,cpc,cpm,actions';
+    const url=`https://graph.facebook.com/v19.0/${adsetId}/ads?fields=name,status,creative{thumbnail_url},insights.time_range({"since":"${since}","until":"${until}"}){${insF}}&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]&limit=50&access_token=${cfg.metaToken}`;
+    const res=await fetch(url);const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    const ads=data.data||[];
+    if(!ads.length){wrap.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">Geen advertenties</div>';return;}
+    wrap.innerHTML=ads.map(ad=>{
+      const ins=ad.insights?.data?.[0]||{};
+      const spend=parseFloat(ins.spend||0);
+      const ctr=parseFloat(ins.ctr||0);
+      const cpc=parseFloat(ins.cpc||0);
+      const cpm=parseFloat(ins.cpm||0);
+      const impr=parseInt(ins.impressions||0);
+      const purchases=(ins.actions||[]).find(a=>a.action_type==='purchase')?.value||0;
+      const thumb=ad.creative?.thumbnail_url||'';
+      const sCls=ad.status==='ACTIVE'?'status-active':'status-paused';
+      return`<div class="ad-row">
+        ${thumb?`<img src="${thumb}" class="ad-thumb">`:'<div class="ad-thumb" style="display:flex;align-items:center;justify-content:center">🖼️</div>'}
+        <span class="ad-name">${ad.name}</span>
+        <span class="${sCls}">${ad.status==='ACTIVE'?'Actief':'Gepauzeerd'}</span>
+        <div class="ad-stats">
+          <span><b>${eur(spend)}</b> spend</span>
+          <span><b>${impr.toLocaleString('nl-NL')}</b> impr.</span>
+          <span><b>${ctr.toFixed(2)}%</b> CTR</span>
+          <span><b>€${cpc.toFixed(2)}</b> CPC</span>
+          <span><b>€${cpm.toFixed(2)}</b> CPM</span>
+          <span><b>${purchases}</b> aankopen</span>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(err){wrap.innerHTML=`<div class="alert alert-error">⚠ ${err.message}</div>`;}
+}
+
 function saveMeta(){
   const token=document.getElementById('metaTokenInput').value.trim();
   const accountId=document.getElementById('metaAccountInput').value.trim();
