@@ -1342,18 +1342,27 @@ function showNewCollectieForm(){
   }
 }
 
-function saveNewCollectie(){
+async function saveNewCollectie(){
   const naam=document.getElementById('newCollNaam').value.trim();
   if(!naam){showToast('Vul een naam in');return;}
   const datum=document.getElementById('newCollDatum').value;
   const mijnUrl=document.getElementById('newCollMijnUrl').value.trim();
   const competitorUrl=document.getElementById('newCollCompUrl').value.trim();
-  collectiesData.unshift({id:Date.now(),naam,datum,mijnUrl,competitorUrl,status:'Gepland',producten:[],bestanden:[],expanded:true});
+  const coll={id:Date.now(),naam,datum,mijnUrl,competitorUrl,status:'Gepland',producten:[],bestanden:[],expanded:true,driveFolderId:null};
+  collectiesData.unshift(coll);
   saveCollecties();
   ['newCollNaam','newCollDatum','newCollMijnUrl','newCollCompUrl'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('newCollectieForm').style.display='none';
   renderCollecties();
   showToast('✓ Collectie aangemaakt');
+  if(gdriveToken){
+    try{
+      const folderId=await findOrCreateDriveFolder(naam);
+      coll.driveFolderId=folderId;
+      saveCollecties();
+      showToast('✓ Drive map aangemaakt: '+naam);
+    }catch(e){console.warn('Drive map fout:',e.message);}
+  }
 }
 
 function calcProduct(p){
@@ -1562,7 +1571,12 @@ async function handleFileUpload(collectieId,input){
   for(const file of input.files){
     if(gdriveToken){
       try{
-        const driveFile=await uploadToDrive(file,coll.naam);
+        // Zorg dat de Drive map bestaat voor deze collectie
+        if(!coll.driveFolderId){
+          coll.driveFolderId=await findOrCreateDriveFolder(coll.naam);
+          saveCollecties();
+        }
+        const driveFile=await uploadToDrive(file,coll.driveFolderId);
         coll.bestanden.push({naam:file.name,type:file.type,driveId:driveFile.id,driveUrl:`https://drive.google.com/file/d/${driveFile.id}/view`});
         showToast('✓ '+file.name+' → Google Drive');
       }catch(e){
@@ -1622,42 +1636,45 @@ function deleteCollBestand(collectieId,idx){
 // =====================
 // GOOGLE DRIVE
 // =====================
+const GDRIVE_CLIENT_ID='208851471461-5dth0tukd0an5vgefu3efqrn8ka7m4hp.apps.googleusercontent.com';
+const GDRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+
 function connectGDrive(){
-  if(!cfg.gdriveClientId){
-    const id=prompt('Voer je Google OAuth Client ID in:\n(Aanmaken via console.cloud.google.com → APIs & Services → Credentials)');
-    if(!id)return;
-    cfg.gdriveClientId=id.trim();
-    saveCfg();
-  }
-  const scope='https://www.googleapis.com/auth/drive.file';
+  localStorage.setItem('av2_gdrive_return','collecties');
   const redirect=window.location.origin+window.location.pathname;
-  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(cfg.gdriveClientId)}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=consent`;
+  const url='https://accounts.google.com/o/oauth2/v2/auth'
+    +'?client_id='+encodeURIComponent(GDRIVE_CLIENT_ID)
+    +'&redirect_uri='+encodeURIComponent(redirect)
+    +'&response_type=token'
+    +'&scope='+encodeURIComponent(GDRIVE_SCOPE)
+    +'&prompt=consent';
   window.location.href=url;
 }
 
-async function uploadToDrive(file,folderName){
-  const folderId=await findOrCreateDriveFolder(folderName);
-  const meta={name:file.name,mimeType:file.type,parents:[folderId]};
+async function uploadToDrive(file,folderId){
+  const meta={name:file.name,mimeType:file.type||'application/octet-stream',parents:[folderId]};
   const form=new FormData();
   form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
   form.append('file',file);
-  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink',{
     method:'POST',headers:{Authorization:'Bearer '+gdriveToken},body:form
   });
-  if(!res.ok)throw new Error('HTTP '+res.status);
+  if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||'HTTP '+res.status);}
   return res.json();
 }
 
 async function findOrCreateDriveFolder(name){
-  const q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`,{headers:{Authorization:'Bearer '+gdriveToken}});
+  const q=`name='${name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,{headers:{Authorization:'Bearer '+gdriveToken}});
   const sd=await sr.json();
+  if(sd.error)throw new Error(sd.error.message);
   if(sd.files&&sd.files.length)return sd.files[0].id;
-  const cr=await fetch('https://www.googleapis.com/drive/v3/files',{
+  const cr=await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name',{
     method:'POST',headers:{Authorization:'Bearer '+gdriveToken,'Content-Type':'application/json'},
     body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder'})
   });
   const cd=await cr.json();
+  if(cd.error)throw new Error(cd.error.message);
   return cd.id;
 }
 
@@ -1671,6 +1688,7 @@ loadComp();
 const urlP=new URLSearchParams(window.location.search);
 
 // Google Drive OAuth callback (implicit flow — token in URL hash)
+let gdriveJustLinked=false;
 (function(){
   const hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
   const at=hash.get('access_token');
@@ -1680,7 +1698,7 @@ const urlP=new URLSearchParams(window.location.search);
     localStorage.setItem('av2_gdrive_token',at);
     localStorage.setItem('av2_gdrive_expires',exp);
     window.history.replaceState({},'',window.location.pathname);
-    showToast('✓ Google Drive gekoppeld!');
+    gdriveJustLinked=true;
   }
 })();
 
@@ -1713,6 +1731,17 @@ if(cfg.domain&&cfg.accessToken){
   if(advisorRules.scaleDays)document.getElementById('ruleScaleDays').value=advisorRules.scaleDays;
   if(advisorRules.testCtr)document.getElementById('ruleTestCtr').value=advisorRules.testCtr;
   loadData();
+  // Na Google Drive koppeling: terug naar Collecties pagina
+  if(gdriveJustLinked){
+    const returnPage=localStorage.getItem('av2_gdrive_return');
+    if(returnPage==='collecties'){
+      localStorage.removeItem('av2_gdrive_return');
+      setTimeout(()=>{
+        showPage('collecties',document.querySelector('.nav-item[onclick*="collecties"]'));
+        showToast('✓ Google Drive gekoppeld!');
+      },300);
+    }
+  }
 }else{
   document.getElementById('setupScreen').style.display='block';
   if(cfg.domain)document.getElementById('shopInput').value=cfg.domain;
