@@ -1009,7 +1009,7 @@ function renderOrders(){
     const mQ=!q||o.name.toLowerCase().includes(q);
     const mS=!sf||o.financial_status===sf;
     return mQ&&mS;
-  });
+  }).sort((a,b)=>parseInt(b.name.replace(/\D/g,''))-parseInt(a.name.replace(/\D/g,'')));
   document.getElementById('ordersSub').textContent=orders.length+' bestellingen';
   const sm={paid:['Betaald','badge-g'],pending:['In afwachting','badge-o'],refunded:['Terugbetaald','badge-r'],partially_refunded:['Gedeeltelijk terugbet.','badge-r'],voided:['Geannuleerd','badge-r'],authorized:['Geautoriseerd','badge-o'],partially_paid:['Gedeeltelijk betaald','badge-o']};
   if(!orders.length){document.getElementById('ordersWrap').innerHTML='<div class="empty">Geen bestellingen gevonden</div>';return;}
