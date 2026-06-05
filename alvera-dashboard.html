@@ -417,6 +417,7 @@ tbody tr:hover{background:#fafafa}
             </div>
             <button class="btn" onclick="addProductTest()">+ Product toevoegen</button>
           </div>
+          <div id="ptOverzicht"></div>
           <div class="card" style="padding:0;overflow:hidden">
             <div style="overflow-x:auto;max-height:75vh;overflow-y:auto">
               <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
@@ -425,6 +426,7 @@ tbody tr:hover{background:#fafafa}
                   <th style="padding:10px 8px 10px 14px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:90px">Status</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:44px;text-align:center">Nr</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:160px">Productnaam</th>
+                  <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:130px">Categorie</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:90px;text-align:right">COGS</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:105px;text-align:right">Verkoopprijs</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:90px;text-align:right">Marge</th>
@@ -558,7 +560,8 @@ tbody tr:hover{background:#fafafa}
 // =====================
 // STATE
 // =====================
-let cfg={}, cogsData={}, compData=[], advisorRules={}, collectiesData=[], productTestenData=[], ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance', gdriveToken=null;
+const PT_CAT_DEFAULT=['2-delige set','Bikini','Maxi jurk','Midi jurk','Mini rok','Broek','Shirt','Blouse','Hakken','Loafers','Slippers','Schoenen','Sandalen'];
+let cfg={}, cogsData={}, compData=[], advisorRules={}, collectiesData=[], productTestenData=[], ptCategorieen=[...PT_CAT_DEFAULT], ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance', gdriveToken=null;
 
 // =====================
 // STORAGE
@@ -571,6 +574,7 @@ function loadStorage(){
     const r=localStorage.getItem('av2_rules'); if(r)advisorRules=JSON.parse(r);
     const cl=localStorage.getItem('av2_collecties'); if(cl)collectiesData=JSON.parse(cl);
     const pt=localStorage.getItem('av2_producttesten'); if(pt)productTestenData=JSON.parse(pt);
+    const ptc=localStorage.getItem('av2_pt_categorieen'); if(ptc)ptCategorieen=JSON.parse(ptc);
     const gt=localStorage.getItem('av2_gdrive_token');
     const ge=localStorage.getItem('av2_gdrive_expires');
     if(gt&&ge&&Date.now()<parseInt(ge)){gdriveToken=gt;}
@@ -1432,6 +1436,7 @@ function calcCollectieAvgs(coll){
 const COLL_STATUS_STYLE={
   'Gepland':{bg:'#dcfce7',color:'#16a34a'},
   'Getest':{bg:'#fee2e2',color:'#dc2626'},
+  'Dag 2 gehaald':{bg:'#fff7ed',color:'#d97706'},
   'Geschaald':{bg:'#dbeafe',color:'#2563eb'}
 };
 
@@ -1785,11 +1790,12 @@ function deleteCollBestand(collectieId,idx){
 // PRODUCT TESTEN
 // =====================
 function saveProductTesten(){localStorage.setItem('av2_producttesten',JSON.stringify(productTestenData));}
+function saveCategorieen(){localStorage.setItem('av2_pt_categorieen',JSON.stringify(ptCategorieen));}
 
 function addProductTest(){
   const n=productTestenData.length;
   const nr='P'+String(n+1).padStart(2,'0');
-  productTestenData.push({id:Date.now(),nr,naam:'',cogs:'',verkoopprijs:'',status:'Gepland',datum:'',mijnUrl:'',competitorUrl:'',fbAdsUrl:'',productpaginaUrl:'',bestanden:[]});
+  productTestenData.push({id:Date.now(),nr,naam:'',cogs:'',verkoopprijs:'',status:'Gepland',categorie:'',datum:'',mijnUrl:'',competitorUrl:'',fbAdsUrl:'',productpaginaUrl:'',bestanden:[]});
   saveProductTesten();
   renderProductTesten();
 }
@@ -1810,14 +1816,60 @@ function deleteProductTest(id){
   renderProductTesten();
 }
 
+function addPTCategorie(selectEl,productId){
+  const naam=(prompt('Naam van nieuwe categorie:')||'').trim();
+  if(!naam){selectEl.value=productTestenData.find(r=>r.id===productId)?.categorie||'';return;}
+  if(!ptCategorieen.includes(naam))ptCategorieen.push(naam);
+  saveCategorieen();
+  updateProductTest(productId,'categorie',naam);
+}
+
+function renderPTOverzicht(){
+  const el=document.getElementById('ptOverzicht');
+  if(!el)return;
+  const cats={};
+  for(const r of productTestenData){
+    const cat=r.categorie||'(geen categorie)';
+    if(!cats[cat])cats[cat]={getest:0,dag2:0,geschaald:0,gepland:0};
+    if(r.status==='Getest')cats[cat].getest++;
+    else if(r.status==='Dag 2 gehaald')cats[cat].dag2++;
+    else if(r.status==='Geschaald')cats[cat].geschaald++;
+    else cats[cat].gepland++;
+  }
+  const entries=Object.entries(cats);
+  if(!entries.length){el.innerHTML='';return;}
+  el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">`
+    +entries.map(([cat,s])=>`
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:160px;flex:1;max-width:280px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(cat)}</div>
+      <div style="display:flex;gap:14px">
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:#dc2626;line-height:1">${s.getest}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">Getest</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:#d97706;line-height:1">${s.dag2}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">Dag 2</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:#2563eb;line-height:1">${s.geschaald}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">Geschaald</div>
+        </div>
+      </div>
+    </div>`).join('')
+    +`</div>`;
+}
+
 function renderProductTesten(){
   const tbody=document.getElementById('ptTableBody');
   if(!tbody)return;
   if(!productTestenData.length){
-    tbody.innerHTML='<tr><td colspan="17" class="empty" style="padding:32px;text-align:center">Nog geen producten — klik "+ Product toevoegen"</td></tr>';
+    tbody.innerHTML='<tr><td colspan="18" class="empty" style="padding:32px;text-align:center">Nog geen producten — klik "+ Product toevoegen"</td></tr>';
+    renderPTOverzicht();
     return;
   }
-  const f=n=>n>0?n.toFixed(2)+'x':'—';
+  const fmt=n=>n>0?n.toFixed(2)+'x':'—';
+  const catOpts=ptCategorieen.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
   const rows=productTestenData.map(r=>{
     const c=calcProduct(r);
     const s=COLL_STATUS_STYLE[r.status]||COLL_STATUS_STYLE['Gepland'];
@@ -1831,18 +1883,26 @@ function renderProductTesten(){
         <select class="coll-status-sel" style="background:${s.bg};color:${s.color}" onchange="updateProductTest(${r.id},'status',this.value)">
           <option value="Gepland" ${r.status==='Gepland'?'selected':''}>Gepland</option>
           <option value="Getest" ${r.status==='Getest'?'selected':''}>Getest</option>
+          <option value="Dag 2 gehaald" ${r.status==='Dag 2 gehaald'?'selected':''}>Dag 2 gehaald</option>
           <option value="Geschaald" ${r.status==='Geschaald'?'selected':''}>Geschaald</option>
         </select>
       </td>
       <td style="padding:8px;text-align:center;color:var(--muted);font-weight:600;font-size:11px">${r.nr}</td>
       <td style="padding:8px"><input class="comp-input" value="${escHtml(r.naam||'')}" onchange="updateProductTest(${r.id},'naam',this.value)" placeholder="Productnaam" style="min-width:150px"></td>
+      <td style="padding:8px">
+        <select class="coll-status-sel" style="background:var(--bg);color:var(--text);font-weight:500;min-width:120px" onchange="if(this.value==='__new__'){addPTCategorie(this,${r.id})}else{updateProductTest(${r.id},'categorie',this.value)}">
+          <option value="">— Categorie —</option>
+          ${ptCategorieen.map(cat=>`<option value="${escHtml(cat)}" ${r.categorie===cat?'selected':''}>${escHtml(cat)}</option>`).join('')}
+          <option value="__new__">+ Nieuwe categorie</option>
+        </select>
+      </td>
       <td style="padding:8px;text-align:right"><input class="coll-inp" type="number" step=".01" min="0" value="${r.cogs||''}" onchange="updateProductTest(${r.id},'cogs',this.value)" placeholder="0.00" style="width:80px"></td>
       <td style="padding:8px;text-align:right"><input class="coll-inp" type="number" step=".01" min="0" value="${r.verkoopprijs||''}" onchange="updateProductTest(${r.id},'verkoopprijs',this.value)" placeholder="0.00" style="width:90px"></td>
       <td style="padding:8px;text-align:right;font-weight:600;color:${c.marge>0?'var(--green)':c.marge<0?'var(--red)':'var(--muted)'}">${c.marge!==0?eur(c.marge):'—'}</td>
-      <td style="padding:8px;text-align:center"><span class="badge badge-r">${f(c.beRoas)}</span></td>
-      <td style="padding:8px;text-align:center"><span class="badge badge-o">${f(c.roas20)}</span></td>
-      <td style="padding:8px;text-align:center"><span class="badge badge-g">${f(c.roas30)}</span></td>
-      <td style="padding:8px;text-align:center"><span class="badge badge-g">${f(c.roas40)}</span></td>
+      <td style="padding:8px;text-align:center"><span class="badge badge-r">${fmt(c.beRoas)}</span></td>
+      <td style="padding:8px;text-align:center"><span class="badge badge-o">${fmt(c.roas20)}</span></td>
+      <td style="padding:8px;text-align:center"><span class="badge badge-g">${fmt(c.roas30)}</span></td>
+      <td style="padding:8px;text-align:center"><span class="badge badge-g">${fmt(c.roas40)}</span></td>
       <td style="padding:8px"><input class="comp-input" type="date" value="${r.datum||''}" onchange="updateProductTest(${r.id},'datum',this.value)" style="width:115px"></td>
       <td style="padding:8px">${urlCell('mijnUrl',r.mijnUrl)}</td>
       <td style="padding:8px">${urlCell('competitorUrl',r.competitorUrl)}</td>
@@ -1858,6 +1918,7 @@ function renderProductTesten(){
     </tr>`;
   }).join('');
   tbody.innerHTML=rows;
+  renderPTOverzicht();
 }
 
 // PT Bestandenbeheer
