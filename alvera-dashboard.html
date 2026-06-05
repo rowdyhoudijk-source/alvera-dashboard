@@ -1550,6 +1550,30 @@ function deleteCollectie(id){
   showToast('Collectie verwijderd');
 }
 
+function resizeImageForStorage(file,maxPx,quality){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=reject;
+    reader.onload=e=>{
+      const img=new Image();
+      img.onerror=reject;
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxPx||h>maxPx){
+          if(w>=h){h=Math.round(h*maxPx/w);w=maxPx;}
+          else{w=Math.round(w*maxPx/h);h=maxPx;}
+        }
+        const c=document.createElement('canvas');
+        c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',quality||0.78));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function triggerFileUpload(collectieId){
   let input=document.getElementById('collFileInput');
   if(input)input.remove();
@@ -1568,52 +1592,79 @@ async function handleFileUpload(collectieId,input){
   const coll=collectiesData.find(c=>c.id===collectieId);
   if(!coll||!input.files.length)return;
   if(!coll.bestanden)coll.bestanden=[];
+
   for(const file of input.files){
+    const isImage=file.type.startsWith('image/');
+    // Sla afbeelding op als base64 thumbnail (max 800px, JPEG 78%) in localStorage
+    let dataUrl=null;
+    if(isImage){
+      try{dataUrl=await resizeImageForStorage(file,800,0.78);}
+      catch(e){console.warn('Resize fout:',e);}
+    }
+    const bestand={naam:file.name,type:file.type,dataUrl};
+    coll.bestanden.push(bestand);
+    // Sla eerst lokaal op zodat thumbnails direct zichtbaar zijn
+    try{saveCollecties();}catch(e){
+      // localStorage vol: verwijder dataUrl om ruimte vrij te maken
+      bestand.dataUrl=null;
+      saveCollecties();
+      showToast('⚠ Opslag vol — afbeelding niet als thumbnail opgeslagen');
+    }
+    renderCollecties();
+
+    // Upload naar Google Drive op de achtergrond (als gekoppeld)
     if(gdriveToken){
-      try{
-        // Zorg dat de Drive map bestaat voor deze collectie
-        if(!coll.driveFolderId){
-          coll.driveFolderId=await findOrCreateDriveFolder(coll.naam);
+      (async()=>{
+        try{
+          if(!coll.driveFolderId){
+            coll.driveFolderId=await findOrCreateDriveFolder(coll.naam);
+          }
+          const driveFile=await uploadToDrive(file,coll.driveFolderId);
+          bestand.driveId=driveFile.id;
+          bestand.driveUrl=`https://drive.google.com/file/d/${driveFile.id}/view`;
           saveCollecties();
-        }
-        const driveFile=await uploadToDrive(file,coll.driveFolderId);
-        coll.bestanden.push({naam:file.name,type:file.type,driveId:driveFile.id,driveUrl:`https://drive.google.com/file/d/${driveFile.id}/view`});
-        showToast('✓ '+file.name+' → Google Drive');
-      }catch(e){
-        coll.bestanden.push({naam:file.name,type:file.type});
-        showToast('⚠ Drive fout, lokaal opgeslagen: '+e.message);
-      }
-    }else{
-      coll.bestanden.push({naam:file.name,type:file.type});
+          showToast('✓ '+file.name+' → Google Drive');
+          renderCollecties();
+        }catch(e){showToast('⚠ Drive upload fout: '+e.message);}
+      })();
     }
   }
   if(input.parentNode)input.remove();
-  saveCollecties();
-  renderCollecties();
 }
 
 function openFileViewer(collectieId){
   const coll=collectiesData.find(c=>c.id===collectieId);
   if(!coll||(coll.bestanden||[]).length===0){showToast('Geen bestanden in deze collectie');return;}
-  document.getElementById('fileViewerTitle').textContent=escHtml(coll.naam)+' — bestanden ('+coll.bestanden.length+')';
+  document.getElementById('fileViewerTitle').textContent=coll.naam+' — bestanden ('+coll.bestanden.length+')';
   const items=coll.bestanden.map(f=>{
     const isImage=f.type&&f.type.startsWith('image/');
     const isVideo=f.type&&f.type.startsWith('video/');
     const isPdf=f.type&&f.type.includes('pdf');
     const href=f.driveUrl||null;
-    const thumbSrc=f.driveId&&isImage?`https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300`:null;
     const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
-    const thumb=thumbSrc
-      ?`<img class="file-card-thumb" src="${thumbSrc}" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>${icon}</div>'">`
-      :`<div class="file-card-icon">${icon}</div>`;
+    const driveLabel=href?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
+
+    // Thumbnail: gebruik base64 dataUrl (altijd aanwezig voor afbeeldingen), daarna Drive fallback
+    let thumb;
+    if(isImage&&f.dataUrl){
+      // Echte afbeelding uit localStorage
+      const wrapStyle=href?`href="${escHtml(href)}" target="_blank"`:'';
+      thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;
+    } else if(isImage&&f.driveId){
+      // Drive thumbnail als dataUrl ontbreekt
+      thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;
+    } else {
+      thumb=`<div class="file-card-icon">${icon}</div>`;
+    }
+
     const tag=href?'a':'div';
-    const attrs=href?`href="${escHtml(href)}" target="_blank"`:'style="cursor:default;opacity:.75"';
+    const attrs=href?`href="${escHtml(href)}" target="_blank"`:'style="cursor:default"';
     return`<${tag} class="file-card" ${attrs}>
       ${thumb}
       <div class="file-card-info">
-        <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}</div>
-        <div class="file-card-type">${typeLabel}${!href?' — lokaal':''}</div>
+        <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}${driveLabel}</div>
+        <div class="file-card-type">${typeLabel}</div>
       </div>
     </${tag}>`;
   }).join('');
