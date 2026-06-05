@@ -1640,11 +1640,14 @@ async function handleFileUpload(collectieId,input){
 
   for(const file of input.files){
     const isImage=file.type.startsWith('image/');
-    // Sla afbeelding op als base64 thumbnail (max 800px, JPEG 78%) in localStorage
+    const isVideo=file.type.startsWith('video/');
     let dataUrl=null;
     if(isImage){
       try{dataUrl=await resizeImageForStorage(file,800,0.78);}
       catch(e){console.warn('Resize fout:',e);}
+    }else if(isVideo){
+      try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
+      catch(e){console.warn('Video lees fout:',e);}
     }
     const bestand={naam:file.name,type:file.type,dataUrl};
     coll.bestanden.push(bestand);
@@ -1708,7 +1711,7 @@ function openFileViewer(collectieId){
     if(f.driveUrl){
       cardTag='a';
       cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;
-    }else if(f.dataUrl&&isImage){
+    }else if(f.dataUrl&&(isImage||isVideo)){
       cardTag='a';
       cardAttrs=`href="#" onclick="event.preventDefault();openLocalImage(${i})"`;
     }else{
@@ -1753,12 +1756,20 @@ function openLocalImage(idx){
   const coll=collectiesData.find(c=>c.id===currentViewerCollectieId);
   if(!coll||!coll.bestanden[idx]||!coll.bestanden[idx].dataUrl)return;
   const f=coll.bestanden[idx];
+  const isVideo=f.type&&f.type.startsWith('video/');
   const w=window.open('','_blank');
   if(!w){showToast('Pop-up geblokkeerd — sta pop-ups toe in je browser');return;}
-  w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
-    +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
-    +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
-    +'<body><img src="'+f.dataUrl+'"></body></html>');
+  if(isVideo){
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'video{max-width:100vw;max-height:100vh}</style></head>'
+      +'<body><video controls autoplay src="'+f.dataUrl+'"></video></body></html>');
+  }else{
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
+      +'<body><img src="'+f.dataUrl+'"></body></html>');
+  }
   w.document.close();
 }
 
@@ -1868,8 +1879,10 @@ async function handlePTFileUpload(productId,input){
   if(!prod.bestanden)prod.bestanden=[];
   for(const file of input.files){
     const isImage=file.type.startsWith('image/');
+    const isVideo=file.type.startsWith('video/');
     let dataUrl=null;
     if(isImage){try{dataUrl=await resizeImageForStorage(file,800,0.78);}catch(e){}}
+    else if(isVideo){try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}catch(e){}}
     const bestand={naam:file.name,type:file.type,dataUrl};
     prod.bestanden.push(bestand);
     try{saveProductTesten();}catch(e){bestand.dataUrl=null;saveProductTesten();showToast('⚠ Opslag vol');}
@@ -1909,7 +1922,7 @@ function openPTFileViewer(productId){
     else{thumb=`<div class="file-card-icon">${icon}</div>`;}
     let cardTag,cardAttrs;
     if(f.driveUrl){cardTag='a';cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;}
-    else if(f.dataUrl&&isImage){cardTag='a';cardAttrs=`href="#" onclick="event.preventDefault();openPTLocalImage(${i})"`;}
+    else if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs=`href="#" onclick="event.preventDefault();openPTLocalImage(${i})"`;}
     else{cardTag='div';cardAttrs='style="cursor:default"';}
     return`<div class="file-card-wrap">
       <${cardTag} class="file-card" ${cardAttrs}>
@@ -1946,12 +1959,20 @@ function openPTLocalImage(idx){
   const prod=productTestenData.find(p=>p.id===ptCurrentViewerProductId);
   if(!prod||!prod.bestanden[idx]||!prod.bestanden[idx].dataUrl)return;
   const f=prod.bestanden[idx];
+  const isVideo=f.type&&f.type.startsWith('video/');
   const w=window.open('','_blank');
   if(!w){showToast('Pop-up geblokkeerd');return;}
-  w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
-    +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
-    +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
-    +'<body><img src="'+f.dataUrl+'"></body></html>');
+  if(isVideo){
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'video{max-width:100vw;max-height:100vh}</style></head>'
+      +'<body><video controls autoplay src="'+f.dataUrl+'"></video></body></html>');
+  }else{
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
+      +'<body><img src="'+f.dataUrl+'"></body></html>');
+  }
   w.document.close();
 }
 
