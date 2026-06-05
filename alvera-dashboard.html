@@ -230,6 +230,20 @@ tbody tr:hover{background:#fafafa}
 .coll-new-form{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-md)}
 .coll-file-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;max-width:180px;overflow:hidden}
 .gdrive-badge{display:inline-flex;align-items:center;gap:5px;background:#e8f0fe;color:#1a73e8;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.file-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.file-modal-overlay.open{display:flex}
+.file-modal{background:var(--white);border-radius:14px;padding:24px;max-width:720px;width:92%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.file-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.file-modal-title{font-size:15px;font-weight:700}
+.file-modal-body{overflow-y:auto;flex:1}
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.file-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;transition:box-shadow .15s;text-decoration:none;color:var(--text)}
+.file-card:hover{box-shadow:var(--shadow-md);border-color:var(--green)}
+.file-card-thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.file-card-icon{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:42px;background:var(--bg)}
+.file-card-info{padding:8px 10px;border-top:1px solid var(--border)}
+.file-card-name{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-card-type{font-size:10px;color:var(--muted);margin-top:2px}
 </style>
 </head>
 <body>
@@ -483,6 +497,19 @@ tbody tr:hover{background:#fafafa}
 </div>
 
 <div id="toast"></div>
+
+<!-- FILE VIEWER MODAL -->
+<div id="fileViewerModal" class="file-modal-overlay" onclick="if(event.target===this)closeFileViewer()">
+  <div class="file-modal">
+    <div class="file-modal-head">
+      <span class="file-modal-title" id="fileViewerTitle">Bestanden</span>
+      <button class="btn-ghost btn-sm" onclick="closeFileViewer()">✕ Sluiten</button>
+    </div>
+    <div class="file-modal-body">
+      <div class="file-grid" id="fileViewerGrid"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 // =====================
@@ -1422,6 +1449,7 @@ function renderCollecties(){
         ${coll.competitorUrl?`<a href="${escHtml(coll.competitorUrl)}" target="_blank" onclick="event.stopPropagation()" class="coll-url-link">Competitor ↗</a>`:`<span class="coll-stat">Geen URL</span>`}
         <span class="coll-sep">|</span>
         <button class="btn-ghost btn-sm" onclick="event.stopPropagation();triggerFileUpload(${coll.id})" style="white-space:nowrap;flex-shrink:0">📎 ${fileCount} bestand${fileCount!==1?'en':''}</button>
+        ${fileCount>0?`<button class="btn btn-sm" onclick="event.stopPropagation();openFileViewer(${coll.id})" style="white-space:nowrap;flex-shrink:0">📂 Bekijken</button>`:''}
         <button class="btn-red" onclick="event.stopPropagation();deleteCollectie(${coll.id})" style="flex-shrink:0;padding:4px 7px">✕</button>
       </div>
       ${isOpen?`<div class="coll-body">
@@ -1443,6 +1471,7 @@ function renderCollecties(){
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="addCollProduct(${coll.id})">+ Product toevoegen</button>
           <button class="btn-ghost btn-sm" onclick="triggerFileUpload(${coll.id})">📎 Bestanden uploaden</button>
+          ${fileCount>0?`<button class="btn btn-sm" onclick="openFileViewer(${coll.id})">📂 Bekijken (${fileCount})</button>`:''}
           ${fileChips?`<div style="display:flex;gap:6px;flex-wrap:wrap">${fileChips}</div>`:''}
         </div>
       </div>`:''}
@@ -1547,6 +1576,39 @@ async function handleFileUpload(collectieId,input){
   if(input.parentNode)input.remove();
   saveCollecties();
   renderCollecties();
+}
+
+function openFileViewer(collectieId){
+  const coll=collectiesData.find(c=>c.id===collectieId);
+  if(!coll||(coll.bestanden||[]).length===0){showToast('Geen bestanden in deze collectie');return;}
+  document.getElementById('fileViewerTitle').textContent=escHtml(coll.naam)+' — bestanden ('+coll.bestanden.length+')';
+  const items=coll.bestanden.map(f=>{
+    const isImage=f.type&&f.type.startsWith('image/');
+    const isVideo=f.type&&f.type.startsWith('video/');
+    const isPdf=f.type&&f.type.includes('pdf');
+    const href=f.driveUrl||null;
+    const thumbSrc=f.driveId&&isImage?`https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300`:null;
+    const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
+    const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
+    const thumb=thumbSrc
+      ?`<img class="file-card-thumb" src="${thumbSrc}" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>${icon}</div>'">`
+      :`<div class="file-card-icon">${icon}</div>`;
+    const tag=href?'a':'div';
+    const attrs=href?`href="${escHtml(href)}" target="_blank"`:'style="cursor:default;opacity:.75"';
+    return`<${tag} class="file-card" ${attrs}>
+      ${thumb}
+      <div class="file-card-info">
+        <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}</div>
+        <div class="file-card-type">${typeLabel}${!href?' — lokaal':''}</div>
+      </div>
+    </${tag}>`;
+  }).join('');
+  document.getElementById('fileViewerGrid').innerHTML=items||'<div class="empty">Geen bestanden</div>';
+  document.getElementById('fileViewerModal').classList.add('open');
+}
+
+function closeFileViewer(){
+  document.getElementById('fileViewerModal').classList.remove('open');
 }
 
 function deleteCollBestand(collectieId,idx){
