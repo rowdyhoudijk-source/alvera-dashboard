@@ -1651,9 +1651,6 @@ function openFileViewer(collectieId){
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
     const driveLabel=f.driveUrl?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
 
-    // Bepaal de open-URL: Drive heeft voorkeur, daarna base64 dataUrl
-    const openHref=f.driveUrl||(f.dataUrl?f.dataUrl:null);
-
     // Thumbnail
     let thumb;
     if(isImage&&f.dataUrl){
@@ -1664,10 +1661,18 @@ function openFileViewer(collectieId){
       thumb=`<div class="file-card-icon">${icon}</div>`;
     }
 
-    const cardTag=openHref?'a':'div';
-    const cardAttrs=openHref
-      ?`href="${escHtml(openHref)}" target="_blank"`
-      :'style="cursor:default"';
+    // Klikgedrag: Drive-link opent Drive, lokale base64 opent in nieuw tabblad via JS
+    let cardTag,cardAttrs;
+    if(f.driveUrl){
+      cardTag='a';
+      cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;
+    }else if(f.dataUrl&&isImage){
+      cardTag='a';
+      cardAttrs=`href="#" onclick="event.preventDefault();openLocalImage(${i})"`;
+    }else{
+      cardTag='div';
+      cardAttrs='style="cursor:default"';
+    }
 
     return`<div class="file-card-wrap">
       <${cardTag} class="file-card" ${cardAttrs}>
@@ -1699,6 +1704,19 @@ function deleteFromViewer(idx){
 function closeFileViewer(){
   document.getElementById('fileViewerModal').classList.remove('open');
   currentViewerCollectieId=null;
+}
+
+function openLocalImage(idx){
+  const coll=collectiesData.find(c=>c.id===currentViewerCollectieId);
+  if(!coll||!coll.bestanden[idx]||!coll.bestanden[idx].dataUrl)return;
+  const f=coll.bestanden[idx];
+  const w=window.open('','_blank');
+  if(!w){showToast('Pop-up geblokkeerd — sta pop-ups toe in je browser');return;}
+  w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+    +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+    +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
+    +'<body><img src="'+f.dataUrl+'"></body></html>');
+  w.document.close();
 }
 
 function deleteCollBestand(collectieId,idx){
