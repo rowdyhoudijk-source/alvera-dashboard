@@ -214,18 +214,18 @@ tbody tr:hover{background:#fafafa}
 .coll-toggle{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0;width:12px;display:inline-block}
 .coll-toggle.open{transform:rotate(90deg)}
 .coll-status-sel{border:none;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:3px 8px;border-radius:12px;flex-shrink:0}
-.coll-stat{font-size:12px;color:var(--muted);white-space:nowrap}
-.coll-stat b{color:var(--text);font-weight:700;font-size:13px}
-.coll-sep{color:var(--border);font-size:12px;flex-shrink:0}
+.coll-stat{font-size:14px;color:var(--muted);white-space:nowrap}
+.coll-stat b{color:var(--text);font-weight:700;font-size:15px}
+.coll-sep{color:var(--border);font-size:14px;flex-shrink:0}
 .coll-name{font-weight:600;font-size:14px;flex:1;min-width:100px}
 .coll-body{border-top:1px solid var(--border);padding:16px}
-.coll-prod-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
-.coll-prod-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 8px 8px 0;border-bottom:2px solid var(--border);white-space:nowrap}
-.coll-prod-table td{padding:7px 8px 7px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+.coll-prod-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;table-layout:fixed}
+.coll-prod-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 6px 8px 0;border-bottom:2px solid var(--border);white-space:nowrap}
+.coll-prod-table td{padding:7px 6px 7px 0;border-bottom:1px solid var(--border);vertical-align:middle}
 .coll-prod-table tr:last-child td{border-bottom:none}
-.coll-inp{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:4px 7px;border-radius:6px;font-family:var(--mono);font-size:12px;width:88px;text-align:right;outline:none}
+.coll-inp{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:4px 6px;border-radius:6px;font-family:var(--mono);font-size:12px;width:100%;text-align:right;outline:none;box-sizing:border-box}
 .coll-inp:focus{border-color:var(--green);background:var(--white)}
-.coll-inp-name{text-align:left;width:180px;font-family:var(--font)}
+.coll-inp-name{text-align:left;font-family:var(--font)}
 .coll-url-link{font-size:11px;color:var(--green);text-decoration:none;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
 .coll-new-form{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-md)}
 .coll-file-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;max-width:180px;overflow:hidden}
@@ -1376,16 +1376,16 @@ function renderCollecties(){
     const prodRows=(coll.producten||[]).map((p,i)=>{
       const c=calcProduct(p);
       return`<tr>
-        <td style="color:var(--muted);font-weight:600;font-size:11px">${escHtml(p.nr)}</td>
+        <td style="color:var(--muted);font-weight:600;font-size:11px;text-align:center">${escHtml(p.nr)}</td>
         <td><input class="coll-inp coll-inp-name" value="${escHtml(p.naam)}" onchange="updateCollProduct(${coll.id},${i},'naam',this.value)" placeholder="Productnaam"></td>
-        <td><input class="coll-inp" type="number" step=".01" min="0" value="${p.cogs||''}" onchange="updateCollProduct(${coll.id},${i},'cogs',this.value)" placeholder="0.00"></td>
-        <td><input class="coll-inp" type="number" step=".01" min="0" value="${p.verkoopprijs||''}" onchange="updateCollProduct(${coll.id},${i},'verkoopprijs',this.value)" placeholder="0.00"></td>
-        <td style="font-weight:600;color:${c.marge>0?'var(--green)':c.marge<0?'var(--red)':'var(--muted)'}">${c.marge!==0?eur(c.marge):'—'}</td>
-        <td><span class="badge badge-r">${f(c.beRoas)}</span></td>
-        <td><span class="badge badge-o">${f(c.roas20)}</span></td>
-        <td><span class="badge badge-g">${f(c.roas30)}</span></td>
-        <td><span class="badge badge-g">${f(c.roas40)}</span></td>
-        <td><button class="btn-red" onclick="deleteCollProduct(${coll.id},${i})">✕</button></td>
+        <td style="text-align:right"><input class="coll-inp" type="number" step=".01" min="0" value="${p.cogs||''}" onchange="updateCollProduct(${coll.id},${i},'cogs',this.value)" placeholder="0.00"></td>
+        <td style="text-align:right"><input class="coll-inp" type="number" step=".01" min="0" value="${p.verkoopprijs||''}" onchange="updateCollProduct(${coll.id},${i},'verkoopprijs',this.value)" placeholder="0.00"></td>
+        <td style="text-align:right;font-weight:600;color:${c.marge>0?'var(--green)':c.marge<0?'var(--red)':'var(--muted)'}">${c.marge!==0?eur(c.marge):'—'}</td>
+        <td style="text-align:center"><span class="badge badge-r">${f(c.beRoas)}</span></td>
+        <td style="text-align:center"><span class="badge badge-o">${f(c.roas20)}</span></td>
+        <td style="text-align:center"><span class="badge badge-g">${f(c.roas30)}</span></td>
+        <td style="text-align:center"><span class="badge badge-g">${f(c.roas40)}</span></td>
+        <td style="text-align:center"><button class="btn-red" onclick="deleteCollProduct(${coll.id},${i})">✕</button></td>
       </tr>`;
     }).join('');
 
@@ -1427,11 +1427,16 @@ function renderCollecties(){
       ${isOpen?`<div class="coll-body">
         <table class="coll-prod-table">
           <thead><tr>
-            <th>Nr</th><th>Productnaam</th>
-            <th style="text-align:right">COGS (€)</th>
-            <th style="text-align:right">Verkoopprijs (€)</th>
-            <th style="text-align:right">Marge</th>
-            <th>BE-ROAS</th><th>20% ROAS</th><th>30% ROAS</th><th>40% ROAS</th><th></th>
+            <th style="width:44px">Nr</th>
+            <th>Productnaam</th>
+            <th style="width:108px;text-align:right">COGS (€)</th>
+            <th style="width:122px;text-align:right">Verkoopprijs (€)</th>
+            <th style="width:100px;text-align:right">Marge</th>
+            <th style="width:82px;text-align:center">BE-ROAS</th>
+            <th style="width:82px;text-align:center">20% ROAS</th>
+            <th style="width:82px;text-align:center">30% ROAS</th>
+            <th style="width:82px;text-align:center">40% ROAS</th>
+            <th style="width:36px"></th>
           </tr></thead>
           <tbody>${prodRows||'<tr><td colspan="10" class="empty" style="padding:16px">Nog geen producten</td></tr>'}</tbody>
         </table>
