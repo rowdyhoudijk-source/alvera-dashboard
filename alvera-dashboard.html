@@ -176,8 +176,79 @@ tbody tr:hover{background:#fafafa}
 .beroas-table td{padding:8px 8px 8px 0;border-bottom:1px solid var(--border)}
 .beroas-table tr:last-child td{border-bottom:none}
 
-@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:768px){.sidebar{display:none}.main{margin-left:0}.grid-2{grid-template-columns:1fr}}
+/* MOBILE NAV */
+.mob-menu-btn{display:none;background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;font-size:22px;line-height:1;color:var(--text);flex-shrink:0;min-width:40px;min-height:40px;align-items:center;justify-content:center}
+.mob-menu-btn:active{background:var(--bg)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:150;backdrop-filter:blur(1px)}
+.sidebar-overlay.mob-open{display:block}
+
+@media(max-width:1100px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+@media(max-width:768px){
+  /* Sidebar slides in from left */
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease;z-index:200;box-shadow:4px 0 24px rgba(0,0,0,.12)}
+  .sidebar.mob-open{transform:translateX(0)}
+  .mob-menu-btn{display:flex}
+
+  /* Main layout */
+  .main{margin-left:0}
+  .content{padding:14px 12px}
+
+  /* Topbar */
+  .topbar{padding:10px 14px;flex-wrap:wrap;gap:6px;row-gap:6px}
+  .topbar-r{width:100%;flex-wrap:nowrap;overflow-x:auto;gap:4px;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none}
+  .topbar-r::-webkit-scrollbar{display:none}
+  .period-wrap{flex-shrink:0;flex-wrap:nowrap}
+  .pb{padding:6px 9px;font-size:11px;flex-shrink:0}
+
+  /* Cards & KPIs */
+  .card{padding:14px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+  .kpi-card{padding:14px}
+  .kpi-val{font-size:20px}
+  .kpi-label{font-size:10px}
+
+  /* Grids → single column */
+  .grid-2{grid-template-columns:1fr}
+  #pixelOnderzoekContent>div:first-child{grid-template-columns:1fr!important}
+
+  /* Nav tap targets */
+  .nav-item{padding:11px 10px;font-size:14px;min-height:44px}
+  .nav-item .ni{font-size:16px}
+
+  /* Button tap targets */
+  .btn{padding:9px 14px;font-size:13px;min-height:40px}
+  .btn-ghost{padding:8px 13px;font-size:13px;min-height:40px}
+  .btn-sm{padding:7px 11px;font-size:12px}
+  .btn-red{padding:8px 12px;font-size:12px;min-height:36px}
+
+  /* Form inputs bigger for touch */
+  .form-input{padding:11px 12px;font-size:15px}
+  .comp-input{font-size:14px;padding:4px 6px}
+  .coll-inp{font-size:13px;padding:6px 8px}
+
+  /* File modal */
+  .file-modal{width:96%;padding:16px;max-height:90vh}
+  .file-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+
+  /* Toast full width on mobile */
+  #toast{bottom:12px;right:12px;left:12px;text-align:center}
+
+  /* Collecties stat text */
+  .coll-stat{font-size:12px}
+  .coll-stat b{font-size:13px}
+
+  /* PT overzicht cards wrap */
+  #ptOverzicht>div{flex-wrap:wrap}
+  #ptOverzicht>div>div{min-width:140px}
+}
+
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr}
+  .kpi-val{font-size:22px}
+}
 .fade-in{animation:fadeUp .3s ease forwards}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .ads-account{margin-bottom:20px}
@@ -251,6 +322,7 @@ tbody tr:hover{background:#fafafa}
 </head>
 <body>
 
+<div class="sidebar-overlay" onclick="toggleMobMenu()"></div>
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-name">Alvera <span>Valencia</span></div>
@@ -285,7 +357,8 @@ tbody tr:hover{background:#fafafa}
 
 <div class="main">
   <div class="topbar">
-    <div style="display:flex;align-items:center">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="mob-menu-btn" onclick="toggleMobMenu()" aria-label="Menu">☰</button>
       <span class="page-title" id="pageTitle">Finance</span>
       <span class="page-sub" id="pageSub"></span>
     </div>
@@ -2361,6 +2434,20 @@ if(cfg.domain&&cfg.accessToken){
   document.getElementById('setupScreen').style.display='block';
   if(cfg.domain)document.getElementById('shopInput').value=cfg.domain;
 }
+
+// Mobile sidebar toggle
+function toggleMobMenu(){
+  document.querySelector('.sidebar').classList.toggle('mob-open');
+  document.querySelector('.sidebar-overlay').classList.toggle('mob-open');
+}
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=768){
+      document.querySelector('.sidebar').classList.remove('mob-open');
+      document.querySelector('.sidebar-overlay').classList.remove('mob-open');
+    }
+  });
+});
 </script>
 </body>
 </html>
