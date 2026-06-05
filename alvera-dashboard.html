@@ -264,6 +264,7 @@ tbody tr:hover{background:#fafafa}
     <div class="nav-item" onclick="showPage('cogs',this)"><span class="ni">📦</span> COGS / Producten</div>
     <div class="nav-item" onclick="showPage('producttesten',this)"><span class="ni">🧪</span> Product Testen</div>
     <div class="nav-item" onclick="showPage('collecties',this)"><span class="ni">🗂️</span> Collecties</div>
+    <div class="nav-item" onclick="showPage('pixelonderzoek',this)"><span class="ni">🔬</span> Pixel Onderzoek</div>
     <div class="nav-item" onclick="showPage('competitor',this)"><span class="ni">🔍</span> Competitor Sheet</div>
     <div class="nav-group">Marketing</div>
     <div class="nav-item" onclick="showPage('advisor',this)"><span class="ni">📈</span> Scaling Advisor</div>
@@ -480,6 +481,15 @@ tbody tr:hover{background:#fafafa}
           <div id="collectiesWrap"></div>
         </div>
 
+        <!-- PIXEL ONDERZOEK PAGE -->
+        <div id="page-pixelonderzoek" style="display:none">
+          <div style="margin-bottom:16px">
+            <div style="font-size:15px;font-weight:600">Pixel Onderzoek</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Automatisch berekend op basis van de Product Testen data — historische statussen worden bewaard</div>
+          </div>
+          <div id="pixelOnderzoekContent"></div>
+        </div>
+
         <!-- COMPETITOR PAGE -->
         <div id="page-competitor" style="display:none">
           <div class="card">
@@ -561,6 +571,7 @@ tbody tr:hover{background:#fafafa}
 // STATE
 // =====================
 const PT_CAT_DEFAULT=['2-delige set','Bikini','Maxi jurk','Midi jurk','Mini rok','Broek','Shirt','Blouse','Hakken','Loafers','Slippers','Schoenen','Sandalen'];
+const PT_STATUS_RANK={'Gepland':0,'Getest':1,'Dag 2 gehaald':2,'Geschaald':3};
 let cfg={}, cogsData={}, compData=[], advisorRules={}, collectiesData=[], productTestenData=[], ptCategorieen=[...PT_CAT_DEFAULT], ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance', gdriveToken=null;
 
 // =====================
@@ -574,6 +585,7 @@ function loadStorage(){
     const r=localStorage.getItem('av2_rules'); if(r)advisorRules=JSON.parse(r);
     const cl=localStorage.getItem('av2_collecties'); if(cl)collectiesData=JSON.parse(cl);
     const pt=localStorage.getItem('av2_producttesten'); if(pt)productTestenData=JSON.parse(pt);
+    productTestenData.forEach(r=>{if(r.maxStatusRank===undefined)r.maxStatusRank=PT_STATUS_RANK[r.status]||0;});
     const ptc=localStorage.getItem('av2_pt_categorieen'); if(ptc)ptCategorieen=JSON.parse(ptc);
     const gt=localStorage.getItem('av2_gdrive_token');
     const ge=localStorage.getItem('av2_gdrive_expires');
@@ -591,9 +603,9 @@ function showPage(page, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.toLowerCase().includes(page))n.classList.add('active');});
-  const pages=['finance','orders','cogs','producttesten','collecties','competitor','advisor','meta'];
+  const pages=['finance','orders','cogs','producttesten','collecties','pixelonderzoek','competitor','advisor','meta'];
   pages.forEach(p=>{ const el=document.getElementById('page-'+p); if(el)el.style.display=p===page?'block':'none'; });
-  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'COGS & Producten',producttesten:'Product Testen',collecties:'Collecties',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
+  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'COGS & Producten',producttesten:'Product Testen',collecties:'Collecties',pixelonderzoek:'Pixel Onderzoek',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
   document.getElementById('pageTitle').textContent=titles[page]||page;
   document.getElementById('periodWrap').style.display=['finance','orders'].includes(page)?'flex':'none';
   document.getElementById('datePickerRow').style.display='none';
@@ -601,6 +613,7 @@ function showPage(page, el){
   if(page==='cogs')renderCogs();
   if(page==='producttesten')renderProductTesten();
   if(page==='collecties')renderCollecties();
+  if(page==='pixelonderzoek')renderPixelOnderzoek();
   if(page==='competitor')renderComp();
   if(page==='advisor')renderAdvisor();
   if(page==='meta'){
@@ -1795,7 +1808,7 @@ function saveCategorieen(){localStorage.setItem('av2_pt_categorieen',JSON.string
 function addProductTest(){
   const n=productTestenData.length;
   const nr='P'+String(n+1).padStart(2,'0');
-  productTestenData.push({id:Date.now(),nr,naam:'',cogs:'',verkoopprijs:'',status:'Gepland',categorie:'',datum:'',mijnUrl:'',competitorUrl:'',fbAdsUrl:'',productpaginaUrl:'',bestanden:[]});
+  productTestenData.push({id:Date.now(),nr,naam:'',cogs:'',verkoopprijs:'',status:'Gepland',categorie:'',maxStatusRank:0,datum:'',mijnUrl:'',competitorUrl:'',fbAdsUrl:'',productpaginaUrl:'',bestanden:[]});
   saveProductTesten();
   renderProductTesten();
 }
@@ -1804,6 +1817,10 @@ function updateProductTest(id,field,value){
   const r=productTestenData.find(r=>r.id===id);
   if(!r)return;
   r[field]=value;
+  if(field==='status'){
+    const rank=PT_STATUS_RANK[value]||0;
+    if(rank>(r.maxStatusRank||0))r.maxStatusRank=rank;
+  }
   saveProductTesten();
   renderProductTesten();
 }
@@ -1919,6 +1936,137 @@ function renderProductTesten(){
   }).join('');
   tbody.innerHTML=rows;
   renderPTOverzicht();
+}
+
+// =====================
+// PIXEL ONDERZOEK
+// =====================
+function renderPixelOnderzoek(){
+  const el=document.getElementById('pixelOnderzoekContent');
+  if(!el)return;
+
+  if(!productTestenData.length){
+    el.innerHTML='<div class="card"><div class="empty" style="padding:48px;text-align:center">Geen data — voeg producten toe via Product Testen</div></div>';
+    return;
+  }
+
+  // Groepeer per categorie, gebruik maxStatusRank voor historische telling
+  const cats={};
+  for(const r of productTestenData){
+    const cat=r.categorie||'(geen categorie)';
+    if(!cats[cat])cats[cat]={totaal:0,getest:0,dag2:0,geschaald:0};
+    cats[cat].totaal++;
+    const rank=r.maxStatusRank||0;
+    if(rank>=1)cats[cat].getest++;
+    if(rank>=2)cats[cat].dag2++;
+    if(rank>=3)cats[cat].geschaald++;
+  }
+
+  const entries=Object.entries(cats).sort((a,b)=>b[1].getest-a[1].getest);
+  const totaal=productTestenData.length;
+  const totGetest=productTestenData.filter(r=>(r.maxStatusRank||0)>=1).length;
+  const totDag2=productTestenData.filter(r=>(r.maxStatusRank||0)>=2).length;
+  const totGeschaald=productTestenData.filter(r=>(r.maxStatusRank||0)>=3).length;
+
+  const pct=(n,d)=>d>0?Math.round(n/d*100)+'%':'—';
+  const thStyle='padding:10px 12px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap';
+  const tdStyle='padding:9px 12px;border-bottom:1px solid var(--border)';
+  const numStyle=tdStyle+';text-align:right;font-weight:600;font-variant-numeric:tabular-nums';
+
+  // Tabel 1 — absolute aantallen
+  const t1rows=entries.map(([cat,s])=>`<tr>
+    <td style="${tdStyle}">${escHtml(cat)}</td>
+    <td style="${numStyle};color:#dc2626">${s.getest}</td>
+    <td style="${numStyle};color:#d97706">${s.dag2}</td>
+    <td style="${numStyle};color:#2563eb">${s.geschaald}</td>
+  </tr>`).join('');
+
+  // Tabel 2 — percentages
+  const t2rows=entries.map(([cat,s])=>`<tr>
+    <td style="${tdStyle}">${escHtml(cat)}</td>
+    <td style="${numStyle};color:#dc2626">${pct(s.getest,s.totaal)}</td>
+    <td style="${numStyle};color:#d97706">${pct(s.dag2,s.totaal)}</td>
+    <td style="${numStyle};color:#2563eb">${pct(s.geschaald,s.totaal)}</td>
+  </tr>`).join('');
+
+  el.innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 16px 10px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border)">Absolute aantallen — per categorie</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead style="background:var(--white)">
+          <tr>
+            <th style="${thStyle};min-width:130px;text-align:left">Categorie</th>
+            <th style="${thStyle};text-align:right;color:#dc2626">Getest</th>
+            <th style="${thStyle};text-align:right;color:#d97706">Dag 2 gehaald</th>
+            <th style="${thStyle};text-align:right;color:#2563eb">Geschaald</th>
+          </tr>
+          </thead>
+          <tbody>${t1rows}</tbody>
+          <tfoot>
+            <tr style="background:var(--bg)">
+              <td style="${tdStyle};font-weight:700">Totaal</td>
+              <td style="${numStyle};color:#dc2626;font-weight:700">${totGetest}</td>
+              <td style="${numStyle};color:#d97706;font-weight:700">${totDag2}</td>
+              <td style="${numStyle};color:#2563eb;font-weight:700">${totGeschaald}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 16px 10px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border)">Percentages — per categorie</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead style="background:var(--white)">
+          <tr>
+            <th style="${thStyle};min-width:130px;text-align:left">Categorie</th>
+            <th style="${thStyle};text-align:right;color:#dc2626">% Getest</th>
+            <th style="${thStyle};text-align:right;color:#d97706">% Dag 2</th>
+            <th style="${thStyle};text-align:right;color:#2563eb">% Geschaald</th>
+          </tr>
+          </thead>
+          <tbody>${t2rows}</tbody>
+          <tfoot>
+            <tr style="background:var(--bg)">
+              <td style="${tdStyle};font-weight:700">Totaal</td>
+              <td style="${numStyle};color:#dc2626;font-weight:700">${pct(totGetest,totaal)}</td>
+              <td style="${numStyle};color:#d97706;font-weight:700">${pct(totDag2,totaal)}</td>
+              <td style="${numStyle};color:#2563eb;font-weight:700">${pct(totGeschaald,totaal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;max-width:400px">
+    <div style="padding:14px 16px 10px;font-size:13px;font-weight:600;border-bottom:1px solid var(--border)">Totaal overzicht</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="${tdStyle};color:var(--muted)">Producten totaal</td>
+          <td style="${numStyle}">${totaal}</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="${tdStyle};color:var(--muted)">Getest</td>
+          <td style="${numStyle};color:#dc2626">${totGetest} <span style="font-size:11px;color:var(--muted);font-weight:400">(${pct(totGetest,totaal)})</span></td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="${tdStyle};color:var(--muted)">Dag 2 gehaald</td>
+          <td style="${numStyle};color:#d97706">${totDag2} <span style="font-size:11px;color:var(--muted);font-weight:400">(${pct(totDag2,totaal)})</span></td>
+        </tr>
+        <tr>
+          <td style="${tdStyle};color:var(--muted)">Geschaald</td>
+          <td style="${numStyle};color:#2563eb">${totGeschaald} <span style="font-size:11px;color:var(--muted);font-weight:400">(${pct(totGeschaald,totaal)})</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
 }
 
 // PT Bestandenbeheer
