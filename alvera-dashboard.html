@@ -1333,10 +1333,10 @@ function calcProduct(p){
   const cogs=parseFloat(p.cogs)||0;
   const vp=parseFloat(p.verkoopprijs)||0;
   const marge=vp-cogs;
-  const beRoas=cogs>0?vp/cogs:0;
-  const roas20=cogs>0?vp/(cogs/0.20):0;
-  const roas30=cogs>0?vp/(cogs/0.30):0;
-  const roas40=cogs>0?vp/(cogs/0.40):0;
+  const beRoas=marge>0?vp/marge:0;
+  const roas20=(marge-vp*0.20)>0?vp/(marge-vp*0.20):0;
+  const roas30=(marge-vp*0.30)>0?vp/(marge-vp*0.30):0;
+  const roas40=(marge-vp*0.40)>0?vp/(marge-vp*0.40):0;
   return{marge,beRoas,roas20,roas30,roas40};
 }
 
