@@ -205,6 +205,31 @@ tbody tr:hover{background:#fafafa}
 .status-active{background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
 .status-paused{background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
 .expand-icon{font-size:10px;color:var(--muted);transition:transform .2s;margin-right:4px}
+
+/* COLLECTIES */
+.coll-list{display:flex;flex-direction:column;gap:10px}
+.coll-item{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.coll-header{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;transition:background .15s;user-select:none;flex-wrap:wrap}
+.coll-header:hover{background:#fafafa}
+.coll-toggle{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0;width:12px;display:inline-block}
+.coll-toggle.open{transform:rotate(90deg)}
+.coll-status-sel{border:none;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;outline:none;padding:3px 8px;border-radius:12px;flex-shrink:0}
+.coll-stat{font-size:11px;color:var(--muted);white-space:nowrap}
+.coll-stat b{color:var(--text);font-weight:600}
+.coll-sep{color:var(--border);font-size:11px;flex-shrink:0}
+.coll-name{font-weight:600;font-size:13px;flex:1;min-width:100px}
+.coll-body{border-top:1px solid var(--border);padding:16px}
+.coll-prod-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
+.coll-prod-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 8px 8px 0;border-bottom:2px solid var(--border);white-space:nowrap}
+.coll-prod-table td{padding:7px 8px 7px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+.coll-prod-table tr:last-child td{border-bottom:none}
+.coll-inp{background:var(--bg);border:1.5px solid var(--border);color:var(--text);padding:4px 7px;border-radius:6px;font-family:var(--mono);font-size:12px;width:88px;text-align:right;outline:none}
+.coll-inp:focus{border-color:var(--green);background:var(--white)}
+.coll-inp-name{text-align:left;width:180px;font-family:var(--font)}
+.coll-url-link{font-size:11px;color:var(--green);text-decoration:none;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+.coll-new-form{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-md)}
+.coll-file-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;max-width:180px;overflow:hidden}
+.gdrive-badge{display:inline-flex;align-items:center;gap:5px;background:#e8f0fe;color:#1a73e8;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
 </style>
 </head>
 <body>
@@ -220,6 +245,7 @@ tbody tr:hover{background:#fafafa}
     <div class="nav-item" onclick="showPage('orders',this)"><span class="ni">🛍️</span> Bestellingen</div>
     <div class="nav-group">Producten</div>
     <div class="nav-item" onclick="showPage('cogs',this)"><span class="ni">📦</span> COGS / Producten</div>
+    <div class="nav-item" onclick="showPage('collecties',this)"><span class="ni">🗂️</span> Collecties</div>
     <div class="nav-item" onclick="showPage('competitor',this)"><span class="ni">🔍</span> Competitor Sheet</div>
     <div class="nav-group">Marketing</div>
     <div class="nav-item" onclick="showPage('advisor',this)"><span class="ni">📈</span> Scaling Advisor</div>
@@ -364,6 +390,37 @@ tbody tr:hover{background:#fafafa}
           </div>
         </div>
 
+        <!-- COLLECTIES PAGE -->
+        <div id="page-collecties" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:15px;font-weight:600">Collecties</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Productcollecties met ROAS-berekeningen en bestandsbeheer</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span id="gdriveStatus" style="display:none" class="gdrive-badge">📁 Drive gekoppeld</span>
+              <button class="btn-ghost btn-sm" id="gdriveBtn" onclick="connectGDrive()">📁 Google Drive koppelen</button>
+              <button class="btn" onclick="showNewCollectieForm()">+ Nieuwe collectie</button>
+            </div>
+          </div>
+
+          <div id="newCollectieForm" style="display:none" class="coll-new-form">
+            <div style="font-size:14px;font-weight:600;margin-bottom:14px">Nieuwe collectie</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+              <div><label class="form-label">Naam</label><input class="form-input" id="newCollNaam" placeholder="Zomercollectie 2025"></div>
+              <div><label class="form-label">Datum</label><input class="form-input" type="date" id="newCollDatum"></div>
+              <div><label class="form-label">Mijn URL</label><input class="form-input" id="newCollMijnUrl" placeholder="https://..."></div>
+              <div><label class="form-label">Competitor URL</label><input class="form-input" id="newCollCompUrl" placeholder="https://..."></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="saveNewCollectie()">Collectie aanmaken</button>
+              <button class="btn-ghost" onclick="document.getElementById('newCollectieForm').style.display='none'">Annuleren</button>
+            </div>
+          </div>
+
+          <div id="collectiesWrap"></div>
+        </div>
+
         <!-- COMPETITOR PAGE -->
         <div id="page-competitor" style="display:none">
           <div class="card">
@@ -431,7 +488,7 @@ tbody tr:hover{background:#fafafa}
 // =====================
 // STATE
 // =====================
-let cfg={}, cogsData={}, compData=[], advisorRules={}, ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance';
+let cfg={}, cogsData={}, compData=[], advisorRules={}, collectiesData=[], ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance', gdriveToken=null;
 
 // =====================
 // STORAGE
@@ -442,6 +499,10 @@ function loadStorage(){
     const g=localStorage.getItem('av2_cogs'); if(g)cogsData=JSON.parse(g);
     const d=localStorage.getItem('av2_comp'); if(d)compData=JSON.parse(d);
     const r=localStorage.getItem('av2_rules'); if(r)advisorRules=JSON.parse(r);
+    const cl=localStorage.getItem('av2_collecties'); if(cl)collectiesData=JSON.parse(cl);
+    const gt=localStorage.getItem('av2_gdrive_token');
+    const ge=localStorage.getItem('av2_gdrive_expires');
+    if(gt&&ge&&Date.now()<parseInt(ge)){gdriveToken=gt;}
   }catch(e){}
 }
 function saveCfg(){localStorage.setItem('av2_cfg',JSON.stringify(cfg));}
@@ -455,14 +516,15 @@ function showPage(page, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.toLowerCase().includes(page))n.classList.add('active');});
-  const pages=['finance','orders','cogs','competitor','advisor','meta'];
+  const pages=['finance','orders','cogs','collecties','competitor','advisor','meta'];
   pages.forEach(p=>{ const el=document.getElementById('page-'+p); if(el)el.style.display=p===page?'block':'none'; });
-  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'COGS & Producten',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
+  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'COGS & Producten',collecties:'Collecties',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
   document.getElementById('pageTitle').textContent=titles[page]||page;
   document.getElementById('periodWrap').style.display=['finance','orders'].includes(page)?'flex':'none';
   document.getElementById('datePickerRow').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
   if(page==='cogs')renderCogs();
+  if(page==='collecties')renderCollecties();
   if(page==='competitor')renderComp();
   if(page==='advisor')renderAdvisor();
   if(page==='meta'){
@@ -1238,6 +1300,301 @@ async function loadMeta(orders){
 }
 
 // =====================
+// COLLECTIES
+// =====================
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function saveCollecties(){localStorage.setItem('av2_collecties',JSON.stringify(collectiesData));}
+
+function showNewCollectieForm(){
+  const f=document.getElementById('newCollectieForm');
+  const open=f.style.display==='none'||!f.style.display;
+  f.style.display=open?'block':'none';
+  if(open){
+    document.getElementById('newCollDatum').value=new Date().toISOString().split('T')[0];
+    setTimeout(()=>document.getElementById('newCollNaam').focus(),50);
+  }
+}
+
+function saveNewCollectie(){
+  const naam=document.getElementById('newCollNaam').value.trim();
+  if(!naam){showToast('Vul een naam in');return;}
+  const datum=document.getElementById('newCollDatum').value;
+  const mijnUrl=document.getElementById('newCollMijnUrl').value.trim();
+  const competitorUrl=document.getElementById('newCollCompUrl').value.trim();
+  collectiesData.unshift({id:Date.now(),naam,datum,mijnUrl,competitorUrl,status:'Gepland',producten:[],bestanden:[],expanded:true});
+  saveCollecties();
+  ['newCollNaam','newCollDatum','newCollMijnUrl','newCollCompUrl'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('newCollectieForm').style.display='none';
+  renderCollecties();
+  showToast('✓ Collectie aangemaakt');
+}
+
+function calcProduct(p){
+  const cogs=parseFloat(p.cogs)||0;
+  const vp=parseFloat(p.verkoopprijs)||0;
+  const marge=vp-cogs;
+  const beRoas=cogs>0?vp/cogs:0;
+  const roas20=cogs>0?vp/(cogs/0.20):0;
+  const roas30=cogs>0?vp/(cogs/0.30):0;
+  const roas40=cogs>0?vp/(cogs/0.40):0;
+  return{marge,beRoas,roas20,roas30,roas40};
+}
+
+function calcCollectieAvgs(coll){
+  const prods=(coll.producten||[]).filter(p=>parseFloat(p.cogs)>0&&parseFloat(p.verkoopprijs)>0);
+  if(!prods.length)return{marge:0,beRoas:0,roas20:0,roas30:0,roas40:0};
+  const tot=prods.reduce((a,p)=>{const c=calcProduct(p);a.marge+=c.marge;a.beRoas+=c.beRoas;a.roas20+=c.roas20;a.roas30+=c.roas30;a.roas40+=c.roas40;return a;},{marge:0,beRoas:0,roas20:0,roas30:0,roas40:0});
+  const n=prods.length;
+  return{marge:tot.marge/n,beRoas:tot.beRoas/n,roas20:tot.roas20/n,roas30:tot.roas30/n,roas40:tot.roas40/n};
+}
+
+const COLL_STATUS_STYLE={
+  'Gepland':{bg:'#dcfce7',color:'#16a34a'},
+  'Getest':{bg:'#fee2e2',color:'#dc2626'},
+  'Geschaald':{bg:'#dbeafe',color:'#2563eb'}
+};
+
+function renderCollecties(){
+  const wrap=document.getElementById('collectiesWrap');
+  if(!wrap)return;
+  if(!collectiesData.length){
+    wrap.innerHTML='<div class="empty" style="padding:48px">Geen collecties — klik "+ Nieuwe collectie" om te beginnen</div>';
+    // Update Google Drive button
+    updateGdriveBtnState();
+    return;
+  }
+
+  const html=collectiesData.map(coll=>{
+    const avgs=calcCollectieAvgs(coll);
+    const s=COLL_STATUS_STYLE[coll.status]||COLL_STATUS_STYLE['Gepland'];
+    const fileCount=(coll.bestanden||[]).length;
+    const isOpen=!!coll.expanded;
+    const datumFmt=coll.datum?new Date(coll.datum+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}):'—';
+
+    const f=n=>n>0?n.toFixed(2)+'x':'—';
+
+    const prodRows=(coll.producten||[]).map((p,i)=>{
+      const c=calcProduct(p);
+      return`<tr>
+        <td style="color:var(--muted);font-weight:600;font-size:11px">${escHtml(p.nr)}</td>
+        <td><input class="coll-inp coll-inp-name" value="${escHtml(p.naam)}" onchange="updateCollProduct(${coll.id},${i},'naam',this.value)" placeholder="Productnaam"></td>
+        <td><input class="coll-inp" type="number" step=".01" min="0" value="${p.cogs||''}" onchange="updateCollProduct(${coll.id},${i},'cogs',this.value)" placeholder="0.00"></td>
+        <td><input class="coll-inp" type="number" step=".01" min="0" value="${p.verkoopprijs||''}" onchange="updateCollProduct(${coll.id},${i},'verkoopprijs',this.value)" placeholder="0.00"></td>
+        <td style="font-weight:600;color:${c.marge>0?'var(--green)':c.marge<0?'var(--red)':'var(--muted)'}">${c.marge!==0?eur(c.marge):'—'}</td>
+        <td><span class="badge badge-r">${f(c.beRoas)}</span></td>
+        <td><span class="badge badge-o">${f(c.roas20)}</span></td>
+        <td><span class="badge badge-g">${f(c.roas30)}</span></td>
+        <td><span class="badge badge-g">${f(c.roas40)}</span></td>
+        <td><button class="btn-red" onclick="deleteCollProduct(${coll.id},${i})">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    const fileChips=(coll.bestanden||[]).map((bf,fi)=>`
+      <span class="coll-file-chip">
+        ${bf.driveUrl?`<a href="${escHtml(bf.driveUrl)}" target="_blank" style="color:var(--green);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${escHtml(bf.naam)}</a>`:`<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${escHtml(bf.naam)}</span>`}
+        <button onclick="deleteCollBestand(${coll.id},${fi})" style="border:none;background:none;color:var(--muted);cursor:pointer;padding:0;line-height:1;flex-shrink:0">✕</button>
+      </span>`).join('');
+
+    return`<div class="coll-item" id="coll-${coll.id}">
+      <div class="coll-header" onclick="toggleCollectie(${coll.id},event)">
+        <span class="coll-toggle ${isOpen?'open':''}">▶</span>
+        <select class="coll-status-sel" style="background:${s.bg};color:${s.color}" onclick="event.stopPropagation()" onchange="updateCollStatus(${coll.id},this.value)">
+          <option value="Gepland" ${coll.status==='Gepland'?'selected':''}>Gepland</option>
+          <option value="Getest" ${coll.status==='Getest'?'selected':''}>Getest</option>
+          <option value="Geschaald" ${coll.status==='Geschaald'?'selected':''}>Geschaald</option>
+        </select>
+        <span class="coll-name">${escHtml(coll.naam)}</span>
+        <span class="coll-sep">|</span>
+        <span class="coll-stat">${datumFmt}</span>
+        <span class="coll-sep">|</span>
+        <span class="coll-stat">gem. marge: <b>${avgs.marge!==0?eur(avgs.marge):'—'}</b></span>
+        <span class="coll-sep">|</span>
+        <span class="coll-stat">gem. BE-ROAS: <b>${f(avgs.beRoas)}</b></span>
+        <span class="coll-sep">|</span>
+        <span class="coll-stat">20% ROAS: <b>${f(avgs.roas20)}</b></span>
+        <span class="coll-sep">|</span>
+        <span class="coll-stat">30% ROAS: <b>${f(avgs.roas30)}</b></span>
+        <span class="coll-sep">|</span>
+        <span class="coll-stat">40% ROAS: <b>${f(avgs.roas40)}</b></span>
+        <span class="coll-sep">|</span>
+        ${coll.mijnUrl?`<a href="${escHtml(coll.mijnUrl)}" target="_blank" onclick="event.stopPropagation()" class="coll-url-link">Mijn URL ↗</a>`:`<span class="coll-stat">Geen URL</span>`}
+        <span class="coll-sep">|</span>
+        ${coll.competitorUrl?`<a href="${escHtml(coll.competitorUrl)}" target="_blank" onclick="event.stopPropagation()" class="coll-url-link">Competitor ↗</a>`:`<span class="coll-stat">Geen URL</span>`}
+        <span class="coll-sep">|</span>
+        <button class="btn-ghost btn-sm" onclick="event.stopPropagation();triggerFileUpload(${coll.id})" style="white-space:nowrap;flex-shrink:0">📎 ${fileCount} bestand${fileCount!==1?'en':''}</button>
+        <button class="btn-red" onclick="event.stopPropagation();deleteCollectie(${coll.id})" style="flex-shrink:0;padding:4px 7px">✕</button>
+      </div>
+      ${isOpen?`<div class="coll-body">
+        <table class="coll-prod-table">
+          <thead><tr>
+            <th>Nr</th><th>Productnaam</th>
+            <th style="text-align:right">COGS (€)</th>
+            <th style="text-align:right">Verkoopprijs (€)</th>
+            <th style="text-align:right">Marge</th>
+            <th>BE-ROAS</th><th>20% ROAS</th><th>30% ROAS</th><th>40% ROAS</th><th></th>
+          </tr></thead>
+          <tbody>${prodRows||'<tr><td colspan="10" class="empty" style="padding:16px">Nog geen producten</td></tr>'}</tbody>
+        </table>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="addCollProduct(${coll.id})">+ Product toevoegen</button>
+          <button class="btn-ghost btn-sm" onclick="triggerFileUpload(${coll.id})">📎 Bestanden uploaden</button>
+          ${fileChips?`<div style="display:flex;gap:6px;flex-wrap:wrap">${fileChips}</div>`:''}
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML=`<div class="coll-list">${html}</div>`;
+  updateGdriveBtnState();
+}
+
+function updateGdriveBtnState(){
+  const btn=document.getElementById('gdriveBtn');
+  const badge=document.getElementById('gdriveStatus');
+  if(!btn||!badge)return;
+  if(gdriveToken){btn.style.display='none';badge.style.display='inline-flex';}
+  else{btn.style.display='inline-flex';badge.style.display='none';}
+}
+
+function toggleCollectie(id,event){
+  const coll=collectiesData.find(c=>c.id===id);
+  if(!coll)return;
+  coll.expanded=!coll.expanded;
+  saveCollecties();
+  renderCollecties();
+}
+
+function updateCollStatus(id,status){
+  const coll=collectiesData.find(c=>c.id===id);
+  if(!coll)return;
+  coll.status=status;
+  saveCollecties();
+  renderCollecties();
+}
+
+function addCollProduct(collectieId){
+  const coll=collectiesData.find(c=>c.id===collectieId);
+  if(!coll)return;
+  if(!coll.producten)coll.producten=[];
+  const n=coll.producten.length;
+  coll.producten.push({nr:'P'+String(n+1).padStart(2,'0'),naam:'',cogs:'',verkoopprijs:''});
+  saveCollecties();
+  renderCollecties();
+}
+
+function updateCollProduct(collectieId,idx,field,value){
+  const coll=collectiesData.find(c=>c.id===collectieId);
+  if(!coll||!coll.producten[idx])return;
+  coll.producten[idx][field]=value;
+  saveCollecties();
+  renderCollecties();
+}
+
+function deleteCollProduct(collectieId,idx){
+  const coll=collectiesData.find(c=>c.id===collectieId);
+  if(!coll)return;
+  coll.producten.splice(idx,1);
+  coll.producten.forEach((p,i)=>{p.nr='P'+String(i+1).padStart(2,'0');});
+  saveCollecties();
+  renderCollecties();
+}
+
+function deleteCollectie(id){
+  if(!confirm('Weet je zeker dat je deze collectie wilt verwijderen?'))return;
+  collectiesData=collectiesData.filter(c=>c.id!==id);
+  saveCollecties();
+  renderCollecties();
+  showToast('Collectie verwijderd');
+}
+
+function triggerFileUpload(collectieId){
+  let input=document.getElementById('collFileInput');
+  if(input)input.remove();
+  input=document.createElement('input');
+  input.type='file';
+  input.id='collFileInput';
+  input.multiple=true;
+  input.accept='image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx';
+  input.style.display='none';
+  document.body.appendChild(input);
+  input.onchange=()=>{handleFileUpload(collectieId,input);};
+  input.click();
+}
+
+async function handleFileUpload(collectieId,input){
+  const coll=collectiesData.find(c=>c.id===collectieId);
+  if(!coll||!input.files.length)return;
+  if(!coll.bestanden)coll.bestanden=[];
+  for(const file of input.files){
+    if(gdriveToken){
+      try{
+        const driveFile=await uploadToDrive(file,coll.naam);
+        coll.bestanden.push({naam:file.name,type:file.type,driveId:driveFile.id,driveUrl:`https://drive.google.com/file/d/${driveFile.id}/view`});
+        showToast('✓ '+file.name+' → Google Drive');
+      }catch(e){
+        coll.bestanden.push({naam:file.name,type:file.type});
+        showToast('⚠ Drive fout, lokaal opgeslagen: '+e.message);
+      }
+    }else{
+      coll.bestanden.push({naam:file.name,type:file.type});
+    }
+  }
+  if(input.parentNode)input.remove();
+  saveCollecties();
+  renderCollecties();
+}
+
+function deleteCollBestand(collectieId,idx){
+  const coll=collectiesData.find(c=>c.id===collectieId);
+  if(!coll)return;
+  coll.bestanden.splice(idx,1);
+  saveCollecties();
+  renderCollecties();
+}
+
+// =====================
+// GOOGLE DRIVE
+// =====================
+function connectGDrive(){
+  if(!cfg.gdriveClientId){
+    const id=prompt('Voer je Google OAuth Client ID in:\n(Aanmaken via console.cloud.google.com → APIs & Services → Credentials)');
+    if(!id)return;
+    cfg.gdriveClientId=id.trim();
+    saveCfg();
+  }
+  const scope='https://www.googleapis.com/auth/drive.file';
+  const redirect=window.location.origin+window.location.pathname;
+  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(cfg.gdriveClientId)}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=consent`;
+  window.location.href=url;
+}
+
+async function uploadToDrive(file,folderName){
+  const folderId=await findOrCreateDriveFolder(folderName);
+  const meta={name:file.name,mimeType:file.type,parents:[folderId]};
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+  form.append('file',file);
+  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+    method:'POST',headers:{Authorization:'Bearer '+gdriveToken},body:form
+  });
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+async function findOrCreateDriveFolder(name){
+  const q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`,{headers:{Authorization:'Bearer '+gdriveToken}});
+  const sd=await sr.json();
+  if(sd.files&&sd.files.length)return sd.files[0].id;
+  const cr=await fetch('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',headers:{Authorization:'Bearer '+gdriveToken,'Content-Type':'application/json'},
+    body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder'})
+  });
+  const cd=await cr.json();
+  return cd.id;
+}
+
+// =====================
 // INIT
 // =====================
 loadStorage();
@@ -1245,6 +1602,20 @@ loadComp();
 
 // Check OAuth callbacks
 const urlP=new URLSearchParams(window.location.search);
+
+// Google Drive OAuth callback (implicit flow — token in URL hash)
+(function(){
+  const hash=new URLSearchParams(window.location.hash.replace(/^#/,''));
+  const at=hash.get('access_token');
+  if(at){
+    gdriveToken=at;
+    const exp=parseInt(hash.get('expires_in')||3600)*1000+Date.now();
+    localStorage.setItem('av2_gdrive_token',at);
+    localStorage.setItem('av2_gdrive_expires',exp);
+    window.history.replaceState({},'',window.location.pathname);
+    showToast('✓ Google Drive gekoppeld!');
+  }
+})();
 
 // Shopify callback
 if(urlP.get('token')&&urlP.get('shop')){
