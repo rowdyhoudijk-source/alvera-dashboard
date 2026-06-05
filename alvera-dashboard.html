@@ -237,13 +237,16 @@ tbody tr:hover{background:#fafafa}
 .file-modal-title{font-size:15px;font-weight:700}
 .file-modal-body{overflow-y:auto;flex:1}
 .file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
-.file-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;transition:box-shadow .15s;text-decoration:none;color:var(--text)}
+.file-card-wrap{position:relative}
+.file-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;transition:box-shadow .15s;text-decoration:none;color:var(--text);cursor:pointer}
 .file-card:hover{box-shadow:var(--shadow-md);border-color:var(--green)}
 .file-card-thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .file-card-icon{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:42px;background:var(--bg)}
 .file-card-info{padding:8px 10px;border-top:1px solid var(--border)}
 .file-card-name{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-card-type{font-size:10px;color:var(--muted);margin-top:2px}
+.file-card-del{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(220,38,38,.88);color:#fff;border:none;cursor:pointer;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:3;line-height:1;transition:background .15s;backdrop-filter:blur(2px)}
+.file-card-del:hover{background:var(--red)}
 </style>
 </head>
 <body>
@@ -1632,48 +1635,70 @@ async function handleFileUpload(collectieId,input){
   if(input.parentNode)input.remove();
 }
 
+let currentViewerCollectieId=null;
+
 function openFileViewer(collectieId){
   const coll=collectiesData.find(c=>c.id===collectieId);
   if(!coll||(coll.bestanden||[]).length===0){showToast('Geen bestanden in deze collectie');return;}
+  currentViewerCollectieId=collectieId;
   document.getElementById('fileViewerTitle').textContent=coll.naam+' — bestanden ('+coll.bestanden.length+')';
-  const items=coll.bestanden.map(f=>{
+
+  const items=coll.bestanden.map((f,i)=>{
     const isImage=f.type&&f.type.startsWith('image/');
     const isVideo=f.type&&f.type.startsWith('video/');
     const isPdf=f.type&&f.type.includes('pdf');
-    const href=f.driveUrl||null;
     const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
-    const driveLabel=href?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
+    const driveLabel=f.driveUrl?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
 
-    // Thumbnail: gebruik base64 dataUrl (altijd aanwezig voor afbeeldingen), daarna Drive fallback
+    // Bepaal de open-URL: Drive heeft voorkeur, daarna base64 dataUrl
+    const openHref=f.driveUrl||(f.dataUrl?f.dataUrl:null);
+
+    // Thumbnail
     let thumb;
     if(isImage&&f.dataUrl){
-      // Echte afbeelding uit localStorage
-      const wrapStyle=href?`href="${escHtml(href)}" target="_blank"`:'';
       thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;
-    } else if(isImage&&f.driveId){
-      // Drive thumbnail als dataUrl ontbreekt
+    }else if(isImage&&f.driveId){
       thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;
-    } else {
+    }else{
       thumb=`<div class="file-card-icon">${icon}</div>`;
     }
 
-    const tag=href?'a':'div';
-    const attrs=href?`href="${escHtml(href)}" target="_blank"`:'style="cursor:default"';
-    return`<${tag} class="file-card" ${attrs}>
-      ${thumb}
-      <div class="file-card-info">
-        <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}${driveLabel}</div>
-        <div class="file-card-type">${typeLabel}</div>
-      </div>
-    </${tag}>`;
+    const cardTag=openHref?'a':'div';
+    const cardAttrs=openHref
+      ?`href="${escHtml(openHref)}" target="_blank"`
+      :'style="cursor:default"';
+
+    return`<div class="file-card-wrap">
+      <${cardTag} class="file-card" ${cardAttrs}>
+        ${thumb}
+        <div class="file-card-info">
+          <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}${driveLabel}</div>
+          <div class="file-card-type">${typeLabel}</div>
+        </div>
+      </${cardTag}>
+      <button class="file-card-del" onclick="event.stopPropagation();deleteFromViewer(${i})" title="Verwijderen">✕</button>
+    </div>`;
   }).join('');
+
   document.getElementById('fileViewerGrid').innerHTML=items||'<div class="empty">Geen bestanden</div>';
   document.getElementById('fileViewerModal').classList.add('open');
 }
 
+function deleteFromViewer(idx){
+  if(!currentViewerCollectieId)return;
+  deleteCollBestand(currentViewerCollectieId,idx);
+  const coll=collectiesData.find(c=>c.id===currentViewerCollectieId);
+  if(!coll||(coll.bestanden||[]).length===0){
+    closeFileViewer();
+  }else{
+    openFileViewer(currentViewerCollectieId);
+  }
+}
+
 function closeFileViewer(){
   document.getElementById('fileViewerModal').classList.remove('open');
+  currentViewerCollectieId=null;
 }
 
 function deleteCollBestand(collectieId,idx){
