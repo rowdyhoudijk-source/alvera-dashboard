@@ -1202,7 +1202,7 @@ function renderComp(){
 function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(productResearchData));}
 
 function addProductResearch(){
-  productResearchData.unshift({id:Date.now(),datumGevonden:'',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:''});
+  productResearchData.unshift({id:Date.now(),datumGevonden:'',type:'Collectie',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:''});
   savePR();
   renderProductResearch();
 }
@@ -1255,6 +1255,13 @@ function prStatusStyle(status){
   return{bg:'transparent',color:'var(--muted)'};
 }
 
+function updatePRType(id,sel){
+  const val=sel.value;
+  updatePR(id,'type',val);
+  if(val==='Singel Product'){sel.style.background='#f0fdf4';sel.style.color='#16a34a';}
+  else{sel.style.background='#eff6ff';sel.style.color='#2563eb';}
+}
+
 function updatePRStatus(id,sel){
   const val=sel.value;
   updatePR(id,'status',val);
@@ -1284,6 +1291,7 @@ function renderProductResearch(){
     const ss=prStatusStyle(r.status);
     return`<tr>
       <td style="${td}"><input type="date" class="comp-input" value="${escHtml(r.datumGevonden||'')}" onchange="updatePR(${r.id},'datumGevonden',this.value)" style="min-width:130px"></td>
+      <td style="${td}"><select class="coll-status-sel" style="background:${r.type==='Singel Product'?'#f0fdf4':'#eff6ff'};color:${r.type==='Singel Product'?'#16a34a':'#2563eb'};font-weight:600;min-width:130px" onchange="updatePRType(${r.id},this)"><option value="Collectie" ${(r.type||'Collectie')==='Collectie'?'selected':''}>Collectie</option><option value="Singel Product" ${r.type==='Singel Product'?'selected':''}>Singel Product</option></select></td>
       <td style="${td}"><select class="coll-status-sel" style="background:var(--bg);color:var(--text);min-width:120px;font-weight:500" onchange="if(this.value==='__new__'){addPRLand(this,${r.id})}else{updatePR(${r.id},'markt',this.value)}"><option value="">— Land —</option>${landOpts}<option value="__new__">+ Land toevoegen</option></select></td>
       <td style="${td}"><input class="comp-input" value="${escHtml(r.productnaam||'')}" onchange="updatePR(${r.id},'productnaam',this.value)" placeholder="Productnaam" style="min-width:150px"></td>
       <td style="${td}"><input class="comp-input" value="${escHtml(r.concurrent||'')}" onchange="updatePR(${r.id},'concurrent',this.value)" placeholder="Store naam" style="min-width:120px"></td>
@@ -1304,6 +1312,7 @@ function renderProductResearch(){
   wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;min-width:1900px">
     <thead><tr>
       <th style="${th}">Datum gevonden</th>
+      <th style="${th}">Type</th>
       <th style="${th}">Markt/Land</th>
       <th style="${th}">Productnaam</th>
       <th style="${th}">Concurrent</th>
