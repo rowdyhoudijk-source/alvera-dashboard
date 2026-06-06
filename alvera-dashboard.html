@@ -336,6 +336,7 @@ tbody tr:hover{background:#fafafa}
     <div class="nav-item" onclick="showPage('cogs',this)"><span class="ni">📦</span> Inkoopkosten</div>
     <div class="nav-item" onclick="showPage('producttesten',this)"><span class="ni">🧪</span> Product Testen</div>
     <div class="nav-item" onclick="showPage('collecties',this)"><span class="ni">🗂️</span> Collecties</div>
+    <div class="nav-item" onclick="showPage('productresearch',this)"><span class="ni">🔎</span> Product Research</div>
     <div class="nav-item" onclick="showPage('competitor',this)"><span class="ni">🔍</span> Competitor Sheet</div>
     <div class="nav-item" onclick="showPage('pixelonderzoek',this)"><span class="ni">🔬</span> Pixel Onderzoek</div>
     <div class="nav-group">Marketing</div>
@@ -575,6 +576,20 @@ tbody tr:hover{background:#fafafa}
           <div id="pixelOnderzoekContent"></div>
         </div>
 
+        <!-- PRODUCT RESEARCH PAGE -->
+        <div id="page-productresearch" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:15px;font-weight:600">Product Research</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Verzamel interessante producten van concurrenten — track advertenties, prijzen en status</div>
+            </div>
+            <button class="btn" onclick="addProductResearch()">+ Product toevoegen</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div id="prWrap" style="overflow-x:auto;max-height:78vh;overflow-y:auto"></div>
+          </div>
+        </div>
+
         <!-- COMPETITOR PAGE -->
         <div id="page-competitor" style="display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -656,7 +671,7 @@ tbody tr:hover{background:#fafafa}
 // =====================
 const PT_CAT_DEFAULT=['2-delige set','Bikini','Maxi jurk','Midi jurk','Mini rok','Broek','Shirt','Blouse','Hakken','Loafers','Slippers','Schoenen','Sandalen'];
 const PT_STATUS_RANK={'Gepland':0,'Getest':1,'Dag 2 gehaald':2,'Geschaald':3};
-let cfg={}, cogsData={}, inkoopData=[], compData=[], advisorRules={}, collectiesData=[], productTestenData=[], ptCategorieen=[...PT_CAT_DEFAULT], ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance', gdriveToken=null;
+let cfg={}, cogsData={}, inkoopData=[], compData=[], advisorRules={}, collectiesData=[], productTestenData=[], ptCategorieen=[...PT_CAT_DEFAULT], productResearchData=[], ordersData=[], productsData=[], currentPeriod='today', customRange=null, revenueChart=null, dayChart=null, currentPage='finance', gdriveToken=null;
 
 // =====================
 // STORAGE
@@ -672,6 +687,7 @@ function loadStorage(){
     const pt=localStorage.getItem('av2_producttesten'); if(pt)productTestenData=JSON.parse(pt);
     productTestenData.forEach(r=>{if(r.maxStatusRank===undefined)r.maxStatusRank=PT_STATUS_RANK[r.status]||0;});
     const ptc=localStorage.getItem('av2_pt_categorieen'); if(ptc)ptCategorieen=JSON.parse(ptc);
+    const pr=localStorage.getItem('av2_productresearch'); if(pr)productResearchData=JSON.parse(pr);
     const gt=localStorage.getItem('av2_gdrive_token');
     const ge=localStorage.getItem('av2_gdrive_expires');
     if(gt&&ge&&Date.now()<parseInt(ge)){gdriveToken=gt;}
@@ -688,9 +704,9 @@ function showPage(page, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.toLowerCase().includes(page))n.classList.add('active');});
-  const pages=['finance','orders','cogs','producttesten','collecties','pixelonderzoek','competitor','advisor','meta'];
+  const pages=['finance','orders','cogs','producttesten','collecties','productresearch','pixelonderzoek','competitor','advisor','meta'];
   pages.forEach(p=>{ const el=document.getElementById('page-'+p); if(el)el.style.display=p===page?'block':'none'; });
-  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'Inkoopkosten',producttesten:'Product Testen',collecties:'Collecties',pixelonderzoek:'Pixel Onderzoek',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
+  const titles={finance:'Finance Overzicht',orders:'Bestellingen',cogs:'Inkoopkosten',producttesten:'Product Testen',collecties:'Collecties',productresearch:'Product Research',pixelonderzoek:'Pixel Onderzoek',competitor:'Competitor Sheet',advisor:'Scaling Advisor',meta:'Meta Ads'};
   document.getElementById('pageTitle').textContent=titles[page]||page;
   document.getElementById('periodWrap').style.display=['finance','orders'].includes(page)?'flex':'none';
   document.getElementById('datePickerRow').style.display='none';
@@ -698,6 +714,7 @@ function showPage(page, el){
   if(page==='cogs')renderCogs();
   if(page==='producttesten')renderProductTesten();
   if(page==='collecties')renderCollecties();
+  if(page==='productresearch')renderProductResearch();
   if(page==='pixelonderzoek')renderPixelOnderzoek();
   if(page==='competitor')renderComp();
   if(page==='advisor')renderAdvisor();
@@ -1177,6 +1194,134 @@ function renderComp(){
     <th style="${th};width:40px"></th>
     <th style="${th};width:40px"></th>
   </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// =====================
+// PRODUCT RESEARCH
+// =====================
+function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(productResearchData));}
+
+function addProductResearch(){
+  productResearchData.unshift({id:Date.now(),datumGevonden:'',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:''});
+  savePR();
+  renderProductResearch();
+}
+
+function updatePR(id,field,val){
+  const r=productResearchData.find(r=>r.id===id);
+  if(r){r[field]=val;savePR();}
+  if(field==='adspend'||field==='dagenLive')updatePRGem(id);
+}
+
+function updatePRGem(id){
+  const r=productResearchData.find(r=>r.id===id);
+  if(!r)return;
+  const adspend=parseFloat(r.adspend)||0;
+  const dagen=parseFloat(r.dagenLive)||0;
+  const gem=dagen>0?adspend/dagen:0;
+  const el=document.getElementById('pr_gem_'+id);
+  if(el)el.textContent=gem>0?'€ '+gem.toFixed(2):'—';
+}
+
+function deletePR(id){
+  if(!confirm('Product verwijderen?'))return;
+  productResearchData=productResearchData.filter(r=>r.id!==id);
+  savePR();
+  renderProductResearch();
+}
+
+function addPRLand(sel,id){
+  const n=(prompt('Naam nieuw land:')||'').trim();
+  if(!n){const r=productResearchData.find(r=>r.id===id);sel.value=r?r.markt||'':'';return;}
+  if(!compCustomLanden.includes(n))compCustomLanden.push(n);
+  saveCompLanden();
+  updatePR(id,'markt',n);
+  renderProductResearch();
+}
+
+function addPRCategorie(selectEl,id){
+  const n=(prompt('Naam nieuwe categorie:')||'').trim();
+  if(!n){const r=productResearchData.find(r=>r.id===id);selectEl.value=r?r.categorie||'':'';return;}
+  if(!ptCategorieen.includes(n))ptCategorieen.push(n);
+  saveCategorieen();
+  updatePR(id,'categorie',n);
+  renderProductResearch();
+}
+
+function prStatusStyle(status){
+  if(status==='Interessant')return{bg:'#eff6ff',color:'#2563eb'};
+  if(status==='Wordt getest')return{bg:'#fff7ed',color:'#d97706'};
+  if(status==='Afgewezen')return{bg:'#fef2f2',color:'#dc2626'};
+  return{bg:'transparent',color:'var(--muted)'};
+}
+
+function updatePRStatus(id,sel){
+  const val=sel.value;
+  updatePR(id,'status',val);
+  const s=prStatusStyle(val);
+  sel.style.background=s.bg;
+  sel.style.color=s.color;
+}
+
+function renderProductResearch(){
+  const wrap=document.getElementById('prWrap');
+  if(!wrap)return;
+  if(!productResearchData.length){
+    wrap.innerHTML='<div style="padding:48px;text-align:center;color:var(--muted)">Geen producten — klik "+ Product toevoegen"</div>';
+    return;
+  }
+  const allLanden=[...COMP_LANDEN,...compCustomLanden];
+  const th='padding:10px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--white);position:sticky;top:0;z-index:2';
+  const td='padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
+  const numInput=(rid,field,val,ph,w)=>`<input class="comp-input" type="number" value="${escHtml(String(val||''))}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:${w||60}px;text-align:right">`;
+  const urlCell=(rid,field,val,ph)=>`<div style="display:flex;align-items:center;gap:3px"><input class="comp-input" value="${escHtml(val||'')}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:110px;max-width:150px">${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}</div>`;
+  const rows=productResearchData.map(r=>{
+    const adspend=parseFloat(r.adspend)||0;
+    const dagen=parseFloat(r.dagenLive)||0;
+    const gem=dagen>0?'€ '+(adspend/dagen).toFixed(2):'—';
+    const landOpts=allLanden.map(l=>`<option value="${escHtml(l)}" ${r.markt===l?'selected':''}>${escHtml(l)}</option>`).join('');
+    const catOpts=ptCategorieen.map(c=>`<option value="${escHtml(c)}" ${r.categorie===c?'selected':''}>${escHtml(c)}</option>`).join('');
+    const ss=prStatusStyle(r.status);
+    return`<tr>
+      <td style="${td}"><input type="date" class="comp-input" value="${escHtml(r.datumGevonden||'')}" onchange="updatePR(${r.id},'datumGevonden',this.value)" style="min-width:130px"></td>
+      <td style="${td}"><select class="coll-status-sel" style="background:var(--bg);color:var(--text);min-width:120px;font-weight:500" onchange="if(this.value==='__new__'){addPRLand(this,${r.id})}else{updatePR(${r.id},'markt',this.value)}"><option value="">— Land —</option>${landOpts}<option value="__new__">+ Land toevoegen</option></select></td>
+      <td style="${td}"><input class="comp-input" value="${escHtml(r.productnaam||'')}" onchange="updatePR(${r.id},'productnaam',this.value)" placeholder="Productnaam" style="min-width:150px"></td>
+      <td style="${td}"><input class="comp-input" value="${escHtml(r.concurrent||'')}" onchange="updatePR(${r.id},'concurrent',this.value)" placeholder="Store naam" style="min-width:120px"></td>
+      <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'verkoopprijs',r.verkoopprijs,'0.00',70)}</div></td>
+      <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'vergelijkingsprijs',r.vergelijkingsprijs,'0.00',70)}</div></td>
+      <td style="${td}">${urlCell(r.id,'websiteUrl',r.websiteUrl,'https://...')}</td>
+      <td style="${td}">${urlCell(r.id,'fbAdUrl',r.fbAdUrl,'https://...')}</td>
+      <td style="${td};text-align:right">${numInput(r.id,'dagenLive',r.dagenLive,'0',60)}</td>
+      <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'adspend',r.adspend,'0.00',70)}</div></td>
+      <td style="${td};text-align:right;color:var(--muted);font-family:var(--mono);font-size:12px;white-space:nowrap"><span id="pr_gem_${r.id}">${gem}</span></td>
+      <td style="${td};text-align:right">${numInput(r.id,'bereik',r.bereik,'0',80)}</td>
+      <td style="${td}"><select class="coll-status-sel" style="background:var(--bg);color:var(--text);min-width:130px" onchange="if(this.value==='__new__'){addPRCategorie(this,${r.id})}else{updatePR(${r.id},'categorie',this.value)}"><option value="">— Categorie —</option>${catOpts}<option value="__new__">+ Nieuwe categorie</option></select></td>
+      <td style="${td}"><select class="coll-status-sel" style="background:${ss.bg};color:${ss.color};font-weight:600;min-width:130px" onchange="updatePRStatus(${r.id},this)"><option value="Interessant" ${r.status==='Interessant'?'selected':''}>Interessant</option><option value="Wordt getest" ${r.status==='Wordt getest'?'selected':''}>Wordt getest</option><option value="Afgewezen" ${r.status==='Afgewezen'?'selected':''}>Afgewezen</option></select></td>
+      <td style="${td}"><input class="comp-input" value="${escHtml(r.notities||'')}" onchange="updatePR(${r.id},'notities',this.value)" placeholder="Notities..." style="min-width:150px"></td>
+      <td style="${td};padding-right:14px"><button onclick="deletePR(${r.id})" style="background:var(--red-l);color:var(--red);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;font-weight:600">✕</button></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;min-width:1900px">
+    <thead><tr>
+      <th style="${th}">Datum gevonden</th>
+      <th style="${th}">Markt/Land</th>
+      <th style="${th}">Productnaam</th>
+      <th style="${th}">Concurrent</th>
+      <th style="${th};text-align:right">Verkoopprijs</th>
+      <th style="${th};text-align:right">Vergelijkingsprijs</th>
+      <th style="${th}">Website URL</th>
+      <th style="${th}">Facebook Advertentie</th>
+      <th style="${th};text-align:right">Dagen live</th>
+      <th style="${th};text-align:right">Adspend</th>
+      <th style="${th};text-align:right">Gem. /dag</th>
+      <th style="${th};text-align:right">Bereik</th>
+      <th style="${th}">Categorie</th>
+      <th style="${th}">Status</th>
+      <th style="${th}">Notities</th>
+      <th style="${th};width:40px"></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 // =====================
