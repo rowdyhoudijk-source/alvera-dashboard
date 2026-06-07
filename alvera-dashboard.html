@@ -1381,31 +1381,34 @@ function openPRFileViewer(productId){
   prCurrentViewerProductId=productId;
   currentViewerCollectieId=null;
   ptCurrentViewerProductId=null;
-  document.getElementById('fileViewerTitle').textContent=(prod.productnaam||'Product')+' \u2014 bestanden ('+prod.bestanden.length+')';
+  document.getElementById('fileViewerTitle').textContent=(prod.productnaam||'Product')+' — bestanden ('+prod.bestanden.length+')';
   const items=prod.bestanden.map((f,i)=>{
     const isImage=f.type&&f.type.startsWith('image/');
     const isVideo=f.type&&f.type.startsWith('video/');
     const isPdf=f.type&&f.type.includes('pdf');
-    const icon=isVideo?'\ud83c\udfac':isPdf?'\ud83d\udcc4':isImage?'\ud83d\uddbc\ufe0f':'\ud83d\udcce';
+    const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
+    const driveLabel=f.driveUrl?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
     let thumb;
-    if(isImage&&f.dataUrl){thumb='<img class="file-card-thumb" src="'+f.dataUrl+'" alt="'+escHtml(f.naam)+'">';}
-    else{thumb='<div class="file-card-icon">'+icon+'</div>';}
+    if(isImage&&f.dataUrl){thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;}
+    else if(isImage&&f.driveId){thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;}
+    else{thumb=`<div class="file-card-icon">${icon}</div>`;}
     let cardTag,cardAttrs;
-    if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs='href="#" onclick="event.preventDefault();openPRLocalImage('+i+')"';}
+    if(f.driveUrl){cardTag='a';cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;}
+    else if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs=`href="#" onclick="event.preventDefault();openPRLocalImage(${i})"`;}
     else{cardTag='div';cardAttrs='style="cursor:default"';}
-    return '<div class="file-card-wrap">'
-      +'<'+cardTag+' class="file-card" '+cardAttrs+'>'
-      +thumb
-      +'<div class="file-card-info">'
-      +'<div class="file-card-name" title="'+escHtml(f.naam)+'">'+escHtml(f.naam)+'</div>'
-      +'<div class="file-card-type">'+typeLabel+'</div>'
-      +'</div>'
-      +'</'+cardTag+'>'
-      +'<button class="file-card-del" onclick="event.stopPropagation();deletePRFromViewer('+i+')" title="Verwijderen">\u2715</button>'
-      +'</div>';
+    return`<div class="file-card-wrap">
+      <${cardTag} class="file-card" ${cardAttrs}>
+        ${thumb}
+        <div class="file-card-info">
+          <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}${driveLabel}</div>
+          <div class="file-card-type">${typeLabel}</div>
+        </div>
+      </${cardTag}>
+      <button class="file-card-del" onclick="event.stopPropagation();deletePRFromViewer(${i})" title="Verwijderen">✕</button>
+    </div>`;
   }).join('');
-  document.getElementById('fileViewerGrid').innerHTML=items||'<div class="empty">Geen bestanden</div>';
+  document.getElementById('fileViewerGrid').innerHTML=items;
   document.getElementById('fileViewerModal').classList.add('open');
 }
 
@@ -1430,19 +1433,19 @@ function openPRLocalImage(idx){
   if(!prod||!prod.bestanden[idx]||!prod.bestanden[idx].dataUrl)return;
   const f=prod.bestanden[idx];
   const isVideo=f.type&&f.type.startsWith('video/');
-  if(isVideo){
-    const arr=f.dataUrl.split(','),mime=arr[0].match(/:(.*?);/)[1];
-    const bstr=atob(arr[1]),n=bstr.length,u8=new Uint8Array(n);
-    for(let j=0;j<n;j++)u8[j]=bstr.charCodeAt(j);
-    window.open(URL.createObjectURL(new Blob([u8],{type:mime})),'_blank');
-    return;
-  }
   const w=window.open('','_blank');
   if(!w){showToast('Pop-up geblokkeerd');return;}
-  w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
-    +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
-    +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
-    +'<body><img src="'+f.dataUrl+'"></body></html>');
+  if(isVideo){
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'video{max-width:100vw;max-height:100vh}</style></head>'
+      +'<body><video controls autoplay src="'+f.dataUrl+'"></video></body></html>');
+  }else{
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
+      +'<body><img src="'+f.dataUrl+'"></body></html>');
+  }
   w.document.close();
 }
 
@@ -1882,7 +1885,7 @@ function renderCollecties(){
         ${coll.competitorUrl?`<a href="${escHtml(coll.competitorUrl)}" target="_blank" onclick="event.stopPropagation()" class="coll-url-link">Competitor ↗</a>`:`<span class="coll-stat">Geen URL</span>`}
         <span class="coll-sep">|</span>
         <button class="btn-ghost btn-sm" onclick="event.stopPropagation();triggerFileUpload(${coll.id})" style="white-space:nowrap;flex-shrink:0">📎 ${fileCount} bestand${fileCount!==1?'en':''}</button>
-        ${fileCount>0?`<button class="btn btn-sm" onclick="event.stopPropagation();openFileViewer(${coll.id})" style="white-space:nowrap;flex-shrink:0">📂 Bekijken</button>`:''}
+        ${fileCount>0?`<button class="btn btn-sm" onclick="event.stopPropagation();openCollFileViewer(${coll.id})" style="white-space:nowrap;flex-shrink:0">📂 Bekijken</button>`:''}
         <button class="btn-red" onclick="event.stopPropagation();deleteCollectie(${coll.id})" style="flex-shrink:0;padding:4px 7px">✕</button>
       </div>
       ${isOpen?`<div class="coll-body">
@@ -1904,7 +1907,7 @@ function renderCollecties(){
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="addCollProduct(${coll.id})">+ Product toevoegen</button>
           <button class="btn-ghost btn-sm" onclick="triggerFileUpload(${coll.id})">📎 Bestanden uploaden</button>
-          ${fileCount>0?`<button class="btn btn-sm" onclick="openFileViewer(${coll.id})">📂 Bekijken (${fileCount})</button>`:''}
+          ${fileCount>0?`<button class="btn btn-sm" onclick="openCollFileViewer(${coll.id})">📂 Bekijken (${fileCount})</button>`:''}
           ${fileChips?`<div style="display:flex;gap:6px;flex-wrap:wrap">${fileChips}</div>`:''}
         </div>
       </div>`:''}
@@ -2061,12 +2064,13 @@ async function handleFileUpload(collectieId,input){
 
 let currentViewerCollectieId=null;
 
-function openFileViewer(collectieId){
+function openCollFileViewer(collectieId){
   const coll=collectiesData.find(c=>c.id===collectieId);
-  if(!coll||(coll.bestanden||[]).length===0){showToast('Geen bestanden in deze collectie');return;}
+  if(!coll||(coll.bestanden||[]).length===0){showToast('Geen bestanden');return;}
   currentViewerCollectieId=collectieId;
+  ptCurrentViewerProductId=null;
+  prCurrentViewerProductId=null;
   document.getElementById('fileViewerTitle').textContent=coll.naam+' — bestanden ('+coll.bestanden.length+')';
-
   const items=coll.bestanden.map((f,i)=>{
     const isImage=f.type&&f.type.startsWith('image/');
     const isVideo=f.type&&f.type.startsWith('video/');
@@ -2074,30 +2078,14 @@ function openFileViewer(collectieId){
     const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
     const driveLabel=f.driveUrl?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
-
-    // Thumbnail
     let thumb;
-    if(isImage&&f.dataUrl){
-      thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;
-    }else if(isImage&&f.driveId){
-      thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;
-    }else{
-      thumb=`<div class="file-card-icon">${icon}</div>`;
-    }
-
-    // Klikgedrag: Drive-link opent Drive, lokale base64 opent in nieuw tabblad via JS
+    if(isImage&&f.dataUrl){thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;}
+    else if(isImage&&f.driveId){thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;}
+    else{thumb=`<div class="file-card-icon">${icon}</div>`;}
     let cardTag,cardAttrs;
-    if(f.driveUrl){
-      cardTag='a';
-      cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;
-    }else if(f.dataUrl&&(isImage||isVideo)){
-      cardTag='a';
-      cardAttrs=`href="#" onclick="event.preventDefault();openLocalImage(${i})"`;
-    }else{
-      cardTag='div';
-      cardAttrs='style="cursor:default"';
-    }
-
+    if(f.driveUrl){cardTag='a';cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;}
+    else if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs=`href="#" onclick="event.preventDefault();openCollLocalImage(${i})"`;}
+    else{cardTag='div';cardAttrs='style="cursor:default"';}
     return`<div class="file-card-wrap">
       <${cardTag} class="file-card" ${cardAttrs}>
         ${thumb}
@@ -2109,8 +2097,7 @@ function openFileViewer(collectieId){
       <button class="file-card-del" onclick="event.stopPropagation();deleteFromViewer(${i})" title="Verwijderen">✕</button>
     </div>`;
   }).join('');
-
-  document.getElementById('fileViewerGrid').innerHTML=items||'<div class="empty">Geen bestanden</div>';
+  document.getElementById('fileViewerGrid').innerHTML=items;
   document.getElementById('fileViewerModal').classList.add('open');
 }
 
@@ -2121,7 +2108,7 @@ function deleteFromViewer(idx){
   if(!coll||(coll.bestanden||[]).length===0){
     closeFileViewer();
   }else{
-    openFileViewer(currentViewerCollectieId);
+    openCollFileViewer(currentViewerCollectieId);
   }
 }
 
@@ -2132,7 +2119,7 @@ function closeFileViewer(){
   prCurrentViewerProductId=null;
 }
 
-function openLocalImage(idx){
+function openCollLocalImage(idx){
   const coll=collectiesData.find(c=>c.id===currentViewerCollectieId);
   if(!coll||!coll.bestanden[idx]||!coll.bestanden[idx].dataUrl)return;
   const f=coll.bestanden[idx];
