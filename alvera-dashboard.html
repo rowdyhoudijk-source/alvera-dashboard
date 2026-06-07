@@ -1213,14 +1213,39 @@ function updatePR(id,field,val){
   if(field==='adspend'||field==='dagenLive')updatePRGem(id);
 }
 
+function calcDagenLive(val){
+  if(!val)return 0;
+  if(/^d{4}-d{2}-d{2}$/.test(String(val))){
+    const start=new Date(val);
+    const today=new Date();today.setHours(0,0,0,0);
+    const diff=Math.floor((today-start)/(1000*60*60*24));
+    return diff>0?diff:0;
+  }
+  return parseFloat(val)||0;
+}
+
+function shortenUrl(url){
+  if(!url)return'';
+  let s=url.replace(/^https?://(www.)?/,'');
+  if(s.length>26)s=s.substring(0,24)+'…';
+  return s;
+}
+
+function editPRUrl(id,field){
+  const r=productResearchData.find(r=>r.id===id);
+  if(!r)return;
+  const newVal=prompt('URL bewerken:',r[field]||'');
+  if(newVal!==null){updatePR(id,field,newVal.trim());renderProductResearch();}
+}
+
 function updatePRGem(id){
   const r=productResearchData.find(r=>r.id===id);
   if(!r)return;
   const adspend=parseFloat(r.adspend)||0;
-  const dagen=parseFloat(r.dagenLive)||0;
+  const dagen=calcDagenLive(r.dagenLive);
   const gem=dagen>0?adspend/dagen:0;
   const el=document.getElementById('pr_gem_'+id);
-  if(el)el.textContent=gem>0?'€ '+gem.toFixed(2):'—';
+  if(el)el.textContent=gem>0?'€ '+gem.toFixed(2):'—';
 }
 
 function deletePR(id){
@@ -1270,6 +1295,26 @@ function updatePRStatus(id,sel){
   sel.style.color=s.color;
 }
 
+
+function updateDagenLiveDisplay(id,dateVal){
+  var d=calcDagenLive(dateVal);
+  var s=document.getElementById('pr_dag_'+id);
+  if(s)s.textContent=d>0?d+(d===1?' dag':' dagen'):'';
+}
+
+function dagenLiveCell(r){
+  var isDate=/^\d{4}-\d{2}-\d{2}$/.test(String(r.dagenLive||''));
+  var dateVal=isDate?r.dagenLive:'';
+  var d=isDate?calcDagenLive(r.dagenLive):0;
+  var dagText=isDate&&d>0?d+' dag'+(d!==1?'en':''):'';
+  return '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
+    +'<input type="date" class="comp-input" value="'+dateVal+'"'
+    +' onchange="updatePR('+r.id+',\'dagenLive\',this.value);updateDagenLiveDisplay('+r.id+',this.value)"'
+    +' style="min-width:130px">'
+    +'<span id="pr_dag_'+r.id+'" style="font-size:11px;color:var(--muted)">'+dagText+'</span>'
+    +'</div>';
+}
+
 function renderProductResearch(){
   const wrap=document.getElementById('prWrap');
   if(!wrap)return;
@@ -1281,10 +1326,12 @@ function renderProductResearch(){
   const th='padding:10px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--white);position:sticky;top:0;z-index:2';
   const td='padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
   const numInput=(rid,field,val,ph,w)=>`<input class="comp-input" type="number" value="${escHtml(String(val||''))}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:${w||60}px;text-align:right">`;
-  const urlCell=(rid,field,val,ph)=>`<div style="display:flex;align-items:center;gap:3px"><input class="comp-input" value="${escHtml(val||'')}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:110px;max-width:150px">${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}</div>`;
+  const urlCell=(rid,field,val,ph)=>val
+    ?'<div style="display:flex;align-items:center;gap:5px"><a href="'+escHtml(val)+'" target="_blank" rel="noopener noreferrer" title="'+escHtml(val)+'" style="color:var(--green);font-size:12px;text-decoration:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(shortenUrl(val))+'</a><button onclick="editPRUrl('+rid+',\''+field+'\'')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;padding:1px 4px;line-height:1;border-radius:3px" title="URL bewerken">✎</button></div>'
+    :'<input class="comp-input" value="" onchange="updatePR('+rid+',\''+field+'\'',this.value);renderProductResearch()" placeholder="'+ph+'" style="min-width:110px;max-width:150px">';
   const rows=productResearchData.map(r=>{
     const adspend=parseFloat(r.adspend)||0;
-    const dagen=parseFloat(r.dagenLive)||0;
+    const dagen=calcDagenLive(r.dagenLive);
     const gem=dagen>0?'€ '+(adspend/dagen).toFixed(2):'—';
     const landOpts=allLanden.map(l=>`<option value="${escHtml(l)}" ${r.markt===l?'selected':''}>${escHtml(l)}</option>`).join('');
     const catOpts=ptCategorieen.map(c=>`<option value="${escHtml(c)}" ${r.categorie===c?'selected':''}>${escHtml(c)}</option>`).join('');
@@ -1299,7 +1346,7 @@ function renderProductResearch(){
       <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'vergelijkingsprijs',r.vergelijkingsprijs,'0.00',70)}</div></td>
       <td style="${td}">${urlCell(r.id,'websiteUrl',r.websiteUrl,'https://...')}</td>
       <td style="${td}">${urlCell(r.id,'fbAdUrl',r.fbAdUrl,'https://...')}</td>
-      <td style="${td};text-align:right">${numInput(r.id,'dagenLive',r.dagenLive,'0',60)}</td>
+      <td style="${td}">${dagenLiveCell(r)}</td>
       <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'adspend',r.adspend,'0.00',70)}</div></td>
       <td style="${td};text-align:right;color:var(--muted);font-family:var(--mono);font-size:12px;white-space:nowrap"><span id="pr_gem_${r.id}">${gem}</span></td>
       <td style="${td};text-align:right">${numInput(r.id,'bereik',r.bereik,'0',80)}</td>
