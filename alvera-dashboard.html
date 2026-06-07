@@ -1199,7 +1199,10 @@ function renderComp(){
 // =====================
 // PRODUCT RESEARCH
 // =====================
-function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(productResearchData));}
+function savePR(){
+  const d=productResearchData.map(p=>{const r=Object.assign({},p);r.bestanden=(p.bestanden||[]).map(f=>{const b=Object.assign({},f);delete b.dataUrl;return b;});return r;});
+  localStorage.setItem('av2_productresearch',JSON.stringify(d));
+}
 
 function addProductResearch(){
   productResearchData.unshift({id:Date.now(),datumGevonden:'',type:'Collectie',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:'',bestanden:[]});
@@ -1367,9 +1370,10 @@ async function handlePRFileUpload(productId,input){
     let dataUrl=null;
     if(isImage){try{dataUrl=await resizeImageForStorage(file,800,0.78);}catch(e){}}
     else if(isVideo){try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}catch(e){}}
-    const bestand={naam:file.name,type:file.type,dataUrl};
+    const fileId=dataUrl?await idbSave(dataUrl):null;
+    const bestand={naam:file.name,type:file.type,fileId,dataUrl};
     prod.bestanden.push(bestand);
-    try{savePR();}catch(e){bestand.dataUrl=null;savePR();showToast('\u26a0 Opslag vol');}
+    savePR();
     renderProductResearch();
   }
   if(input.parentNode)input.remove();
@@ -1421,6 +1425,8 @@ function deletePRFromViewer(idx){
 function deletePRBestand(productId,idx){
   const prod=productResearchData.find(p=>p.id===productId);
   if(!prod)return;
+  const f=prod.bestanden[idx];
+  if(f&&f.fileId)idbDelete(f.fileId);
   prod.bestanden.splice(idx,1);
   savePR();
   renderProductResearch();
@@ -1755,7 +1761,10 @@ async function loadMeta(orders){
 // COLLECTIES
 // =====================
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function saveCollecties(){localStorage.setItem('av2_collecties',JSON.stringify(collectiesData));}
+function saveCollecties(){
+  const d=collectiesData.map(c=>{const r=Object.assign({},c);r.bestanden=(c.bestanden||[]).map(f=>{const b=Object.assign({},f);delete b.dataUrl;return b;});return r;});
+  localStorage.setItem('av2_collecties',JSON.stringify(d));
+}
 
 function showNewCollectieForm(){
   const f=document.getElementById('newCollectieForm');
@@ -2018,7 +2027,6 @@ async function handleFileUpload(collectieId,input){
   const coll=collectiesData.find(c=>c.id===collectieId);
   if(!coll||!input.files.length)return;
   if(!coll.bestanden)coll.bestanden=[];
-
   for(const file of input.files){
     const isImage=file.type.startsWith('image/');
     const isVideo=file.type.startsWith('video/');
@@ -2030,18 +2038,11 @@ async function handleFileUpload(collectieId,input){
       try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
       catch(e){console.warn('Video lees fout:',e);}
     }
-    const bestand={naam:file.name,type:file.type,dataUrl};
+    const fileId=dataUrl?await idbSave(dataUrl):null;
+    const bestand={naam:file.name,type:file.type,fileId,dataUrl};
     coll.bestanden.push(bestand);
-    // Sla eerst lokaal op zodat thumbnails direct zichtbaar zijn
-    try{saveCollecties();}catch(e){
-      // localStorage vol: verwijder dataUrl om ruimte vrij te maken
-      bestand.dataUrl=null;
-      saveCollecties();
-      showToast('⚠ Opslag vol — afbeelding niet als thumbnail opgeslagen');
-    }
+    saveCollecties();
     renderCollecties();
-
-    // Upload naar Google Drive op de achtergrond (als gekoppeld)
     if(gdriveToken){
       (async()=>{
         try{
@@ -2141,6 +2142,8 @@ function openCollLocalImage(idx){
 function deleteCollBestand(collectieId,idx){
   const coll=collectiesData.find(c=>c.id===collectieId);
   if(!coll)return;
+  const f=coll.bestanden[idx];
+  if(f&&f.fileId)idbDelete(f.fileId);
   coll.bestanden.splice(idx,1);
   saveCollecties();
   renderCollecties();
@@ -2149,7 +2152,10 @@ function deleteCollBestand(collectieId,idx){
 // =====================
 // PRODUCT TESTEN
 // =====================
-function saveProductTesten(){localStorage.setItem('av2_producttesten',JSON.stringify(productTestenData));}
+function saveProductTesten(){
+  const d=productTestenData.map(p=>{const r=Object.assign({},p);r.bestanden=(p.bestanden||[]).map(f=>{const b=Object.assign({},f);delete b.dataUrl;return b;});return r;});
+  localStorage.setItem('av2_producttesten',JSON.stringify(d));
+}
 function saveCategorieen(){localStorage.setItem('av2_pt_categorieen',JSON.stringify(ptCategorieen));}
 
 function addProductTest(){
@@ -2439,14 +2445,15 @@ async function handlePTFileUpload(productId,input){
     let dataUrl=null;
     if(isImage){try{dataUrl=await resizeImageForStorage(file,800,0.78);}catch(e){}}
     else if(isVideo){try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}catch(e){}}
-    const bestand={naam:file.name,type:file.type,dataUrl};
+    const fileId=dataUrl?await idbSave(dataUrl):null;
+    const bestand={naam:file.name,type:file.type,fileId,dataUrl};
     prod.bestanden.push(bestand);
-    try{saveProductTesten();}catch(e){bestand.dataUrl=null;saveProductTesten();showToast('⚠ Opslag vol');}
+    saveProductTesten();
     renderProductTesten();
     if(gdriveToken){
       (async()=>{
         try{
-          if(!prod.driveFolderId)prod.driveFolderId=await findOrCreateDriveFolder('PT — '+prod.naam||prod.nr);
+          if(!prod.driveFolderId)prod.driveFolderId=await findOrCreateDriveFolder('PT — '+(prod.naam||prod.nr));
           const df=await uploadToDrive(file,prod.driveFolderId);
           bestand.driveId=df.id;bestand.driveUrl=`https://drive.google.com/file/d/${df.id}/view`;
           saveProductTesten();showToast('✓ '+file.name+' → Drive');renderProductTesten();
@@ -2506,6 +2513,8 @@ function deletePTFromViewer(idx){
 function deletePTBestand(productId,idx){
   const prod=productTestenData.find(p=>p.id===productId);
   if(!prod)return;
+  const f=prod.bestanden[idx];
+  if(f&&f.fileId)idbDelete(f.fileId);
   prod.bestanden.splice(idx,1);
   saveProductTesten();
   renderProductTesten();
@@ -2578,9 +2587,77 @@ async function findOrCreateDriveFolder(name){
 }
 
 // =====================
+// INDEXED DB
+// =====================
+let _idb=null;
+const _idbReady=(function(){
+  return new Promise(resolve=>{
+    try{
+      const req=indexedDB.open('alveraFiles',1);
+      req.onupgradeneeded=e=>{
+        const db=e.target.result;
+        if(!db.objectStoreNames.contains('files'))
+          db.createObjectStore('files',{keyPath:'id',autoIncrement:true});
+      };
+      req.onsuccess=e=>{_idb=e.target.result;resolve();};
+      req.onerror=()=>resolve();
+    }catch(e){resolve();}
+  });
+})();
+
+function idbSave(dataUrl){
+  return new Promise((resolve,reject)=>{
+    if(!_idb){resolve(null);return;}
+    const tx=_idb.transaction('files','readwrite');
+    const req=tx.objectStore('files').add({dataUrl});
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=()=>resolve(null);
+  });
+}
+
+function idbGet(id){
+  return new Promise(resolve=>{
+    if(!_idb||!id){resolve(null);return;}
+    const tx=_idb.transaction('files','readonly');
+    const req=tx.objectStore('files').get(id);
+    req.onsuccess=e=>resolve(e.target.result?e.target.result.dataUrl:null);
+    req.onerror=()=>resolve(null);
+  });
+}
+
+function idbDelete(id){
+  if(!_idb||!id)return;
+  try{
+    const tx=_idb.transaction('files','readwrite');
+    tx.objectStore('files').delete(id);
+  }catch(e){}
+}
+
+async function idbHydrateAll(){
+  await _idbReady;
+  async function hydrate(list){
+    for(const item of list){
+      for(const f of(item.bestanden||[])){
+        if(f.fileId&&!f.dataUrl){
+          f.dataUrl=await idbGet(f.fileId);
+        }else if(f.dataUrl&&!f.fileId){
+          // Backwards compat: migrate existing dataUrl to IDB
+          try{const id=await idbSave(f.dataUrl);if(id)f.fileId=id;}catch(e){}
+        }
+      }
+    }
+  }
+  await hydrate(productResearchData);
+  await hydrate(collectiesData);
+  await hydrate(productTestenData);
+  // Strip dataUrls from localStorage now that IDB holds them
+  savePR();saveCollecties();saveProductTesten();
+}
+// =====================
 // INIT
 // =====================
 loadStorage();
+idbHydrateAll();
 loadComp();
 
 // Check OAuth callbacks
