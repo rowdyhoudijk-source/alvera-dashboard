@@ -1388,25 +1388,23 @@ function openPRFileViewer(productId){
     const isPdf=f.type&&f.type.includes('pdf');
     const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
-    const driveLabel=f.driveUrl?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
     let thumb;
-    if(isImage&&f.dataUrl){thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;}
-    else if(isImage&&f.driveId){thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;}
-    else{thumb=`<div class="file-card-icon">${icon}</div>`;}
+    if(isImage&&f.dataUrl){thumb='<img class="file-card-thumb" src="'+f.dataUrl+'" alt="'+escHtml(f.naam)+'">';}
+    else{thumb='<div class="file-card-icon">'+icon+'</div>';}
     let cardTag,cardAttrs;
-    if(f.driveUrl){cardTag='a';cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;}
-    else if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs=`href="#" onclick="event.preventDefault();openPRLocalImage(${i})"`;}
+    if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs='href="#" onclick="event.preventDefault();openPRLocalImage('+i+')'+'"';}
+    else if(isVideo&&!f.dataUrl){cardTag='div';cardAttrs='class="file-card" style="cursor:pointer" onclick="showToast(\'Video kon niet worden opgeslagen (te groot voor lokale opslag)\')'+'"';}
     else{cardTag='div';cardAttrs='style="cursor:default"';}
-    return`<div class="file-card-wrap">
-      <${cardTag} class="file-card" ${cardAttrs}>
-        ${thumb}
-        <div class="file-card-info">
-          <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}${driveLabel}</div>
-          <div class="file-card-type">${typeLabel}</div>
-        </div>
-      </${cardTag}>
-      <button class="file-card-del" onclick="event.stopPropagation();deletePRFromViewer(${i})" title="Verwijderen">✕</button>
-    </div>`;
+    return '<div class="file-card-wrap">'
+      +'<'+cardTag+' class="file-card" '+cardAttrs+'>'
+      +thumb
+      +'<div class="file-card-info">'
+      +'<div class="file-card-name" title="'+escHtml(f.naam)+'">'+escHtml(f.naam)+'</div>'
+      +'<div class="file-card-type">'+typeLabel+'</div>'
+      +'</div>'
+      +'</'+cardTag+'>'
+      +'<button class="file-card-del" onclick="event.stopPropagation();deletePRFromViewer('+i+')" title="Verwijderen">×</button>'
+      +'</div>';
   }).join('');
   document.getElementById('fileViewerGrid').innerHTML=items;
   document.getElementById('fileViewerModal').classList.add('open');
@@ -1430,11 +1428,12 @@ function deletePRBestand(productId,idx){
 
 function openPRLocalImage(idx){
   const prod=productResearchData.find(p=>p.id===prCurrentViewerProductId);
-  if(!prod||!prod.bestanden[idx]||!prod.bestanden[idx].dataUrl)return;
+  if(!prod||!prod.bestanden[idx]){return;}
   const f=prod.bestanden[idx];
+  if(!f.dataUrl){showToast('Bestand niet beschikbaar (opslag was vol bij uploaden)');return;}
   const isVideo=f.type&&f.type.startsWith('video/');
   const w=window.open('','_blank');
-  if(!w){showToast('Pop-up geblokkeerd');return;}
+  if(!w){showToast('Pop-up geblokkeerd — sta pop-ups toe in je browser');return;}
   if(isVideo){
     w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
       +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
@@ -2077,25 +2076,23 @@ function openCollFileViewer(collectieId){
     const isPdf=f.type&&f.type.includes('pdf');
     const icon=isVideo?'🎬':isPdf?'📄':isImage?'🖼️':'📎';
     const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
-    const driveLabel=f.driveUrl?'<span style="color:var(--green);font-size:9px;font-weight:600;margin-left:4px">DRIVE</span>':'';
     let thumb;
-    if(isImage&&f.dataUrl){thumb=`<img class="file-card-thumb" src="${f.dataUrl}" alt="${escHtml(f.naam)}">`;}
-    else if(isImage&&f.driveId){thumb=`<img class="file-card-thumb" src="https://drive.google.com/thumbnail?id=${f.driveId}&sz=w300" alt="${escHtml(f.naam)}" onerror="this.outerHTML='<div class=file-card-icon>🖼️</div>'">`;}
-    else{thumb=`<div class="file-card-icon">${icon}</div>`;}
+    if(isImage&&f.dataUrl){thumb='<img class="file-card-thumb" src="'+f.dataUrl+'" alt="'+escHtml(f.naam)+'">';}
+    else{thumb='<div class="file-card-icon">'+icon+'</div>';}
     let cardTag,cardAttrs;
-    if(f.driveUrl){cardTag='a';cardAttrs=`href="${escHtml(f.driveUrl)}" target="_blank"`;}
-    else if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs=`href="#" onclick="event.preventDefault();openCollLocalImage(${i})"`;}
+    if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs='href="#" onclick="event.preventDefault();openCollLocalImage('+i+')'+'"';}
+    else if(isVideo&&!f.dataUrl){cardTag='div';cardAttrs='class="file-card" style="cursor:pointer" onclick="showToast(\'Video kon niet worden opgeslagen (te groot voor lokale opslag)\')'+'"';}
     else{cardTag='div';cardAttrs='style="cursor:default"';}
-    return`<div class="file-card-wrap">
-      <${cardTag} class="file-card" ${cardAttrs}>
-        ${thumb}
-        <div class="file-card-info">
-          <div class="file-card-name" title="${escHtml(f.naam)}">${escHtml(f.naam)}${driveLabel}</div>
-          <div class="file-card-type">${typeLabel}</div>
-        </div>
-      </${cardTag}>
-      <button class="file-card-del" onclick="event.stopPropagation();deleteFromViewer(${i})" title="Verwijderen">✕</button>
-    </div>`;
+    return '<div class="file-card-wrap">'
+      +'<'+cardTag+' class="file-card" '+cardAttrs+'>'
+      +thumb
+      +'<div class="file-card-info">'
+      +'<div class="file-card-name" title="'+escHtml(f.naam)+'">'+escHtml(f.naam)+'</div>'
+      +'<div class="file-card-type">'+typeLabel+'</div>'
+      +'</div>'
+      +'</'+cardTag+'>'
+      +'<button class="file-card-del" onclick="event.stopPropagation();deleteFromViewer('+i+')" title="Verwijderen">×</button>'
+      +'</div>';
   }).join('');
   document.getElementById('fileViewerGrid').innerHTML=items;
   document.getElementById('fileViewerModal').classList.add('open');
@@ -2121,11 +2118,12 @@ function closeFileViewer(){
 
 function openCollLocalImage(idx){
   const coll=collectiesData.find(c=>c.id===currentViewerCollectieId);
-  if(!coll||!coll.bestanden[idx]||!coll.bestanden[idx].dataUrl)return;
+  if(!coll||!coll.bestanden[idx]){return;}
   const f=coll.bestanden[idx];
+  if(!f.dataUrl){showToast('Bestand niet beschikbaar (opslag was vol bij uploaden)');return;}
   const isVideo=f.type&&f.type.startsWith('video/');
   const w=window.open('','_blank');
-  if(!w){showToast('Pop-up geblokkeerd');return;}
+  if(!w){showToast('Pop-up geblokkeerd — sta pop-ups toe in je browser');return;}
   if(isVideo){
     w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
       +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
