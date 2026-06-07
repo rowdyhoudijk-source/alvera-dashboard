@@ -1202,7 +1202,7 @@ function renderComp(){
 function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(productResearchData));}
 
 function addProductResearch(){
-  productResearchData.unshift({id:Date.now(),datumGevonden:'',type:'Collectie',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:''});
+  productResearchData.unshift({id:Date.now(),datumGevonden:'',type:'Collectie',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:'',bestanden:[]});
   savePR();
   renderProductResearch();
 }
@@ -1314,6 +1314,7 @@ function renderProductResearch(){
       <td style="${td}"><select class="coll-status-sel" style="background:var(--bg);color:var(--text);min-width:130px" onchange="if(this.value==='__new__'){addPRCategorie(this,${r.id})}else{updatePR(${r.id},'categorie',this.value)}"><option value="">— Categorie —</option>${catOpts}<option value="__new__">+ Nieuwe categorie</option></select></td>
       <td style="${td}"><select class="coll-status-sel" style="background:${ss.bg};color:${ss.color};font-weight:600;min-width:130px" onchange="updatePRStatus(${r.id},this)"><option value="Interessant" ${r.status==='Interessant'?'selected':''}>Interessant</option><option value="Wordt getest" ${r.status==='Wordt getest'?'selected':''}>Wordt getest</option><option value="Afgewezen" ${r.status==='Afgewezen'?'selected':''}>Afgewezen</option></select></td>
       <td style="${td}"><input class="comp-input" value="${escHtml(r.notities||'')}" onchange="updatePR(${r.id},'notities',this.value)" placeholder="Notities..." style="min-width:150px"></td>
+      <td style="${td}"><div style="display:flex;gap:4px;align-items:center">${(()=>{const fc=(r.bestanden||[]).length;return '<button class="btn-ghost btn-sm" onclick="triggerPRFileUpload('+r.id+')" style="white-space:nowrap">📎 '+fc+'</button>'+(fc>0?'<button class="btn btn-sm" onclick="openPRFileViewer('+r.id+')" style="padding:4px 8px;white-space:nowrap">📂</button>':'');})()}</div></td>
       <td style="${td};padding-right:14px"><button onclick="deletePR(${r.id})" style="background:var(--red-l);color:var(--red);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;font-weight:600">✕</button></td>
     </tr>`;
   }).join('');
@@ -1335,10 +1336,114 @@ function renderProductResearch(){
       <th style="${th}">Categorie</th>
       <th style="${th}">Status</th>
       <th style="${th}">Notities</th>
+      <th style="${th}">Bestanden</th>
       <th style="${th};width:40px"></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+let prCurrentViewerProductId=null;
+
+function triggerPRFileUpload(productId){
+  let input=document.getElementById('prFileInput');
+  if(input)input.remove();
+  input=document.createElement('input');
+  input.type='file';input.id='prFileInput';input.multiple=true;
+  input.accept='image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx';
+  input.style.display='none';
+  document.body.appendChild(input);
+  input.onchange=()=>handlePRFileUpload(productId,input);
+  input.click();
+}
+
+async function handlePRFileUpload(productId,input){
+  const prod=productResearchData.find(p=>p.id===productId);
+  if(!prod||!input.files.length)return;
+  if(!prod.bestanden)prod.bestanden=[];
+  for(const file of input.files){
+    const isImage=file.type.startsWith('image/');
+    const isVideo=file.type.startsWith('video/');
+    let dataUrl=null;
+    if(isImage){try{dataUrl=await resizeImageForStorage(file,800,0.78);}catch(e){}}
+    else if(isVideo){try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}catch(e){}}
+    const bestand={naam:file.name,type:file.type,dataUrl};
+    prod.bestanden.push(bestand);
+    try{savePR();}catch(e){bestand.dataUrl=null;savePR();showToast('\u26a0 Opslag vol');}
+    renderProductResearch();
+  }
+  if(input.parentNode)input.remove();
+}
+
+function openPRFileViewer(productId){
+  const prod=productResearchData.find(p=>p.id===productId);
+  if(!prod||(prod.bestanden||[]).length===0){showToast('Geen bestanden');return;}
+  prCurrentViewerProductId=productId;
+  currentViewerCollectieId=null;
+  ptCurrentViewerProductId=null;
+  document.getElementById('fileViewerTitle').textContent=(prod.productnaam||'Product')+' \u2014 bestanden ('+prod.bestanden.length+')';
+  const items=prod.bestanden.map((f,i)=>{
+    const isImage=f.type&&f.type.startsWith('image/');
+    const isVideo=f.type&&f.type.startsWith('video/');
+    const isPdf=f.type&&f.type.includes('pdf');
+    const icon=isVideo?'\ud83c\udfac':isPdf?'\ud83d\udcc4':isImage?'\ud83d\uddbc\ufe0f':'\ud83d\udcce';
+    const typeLabel=isVideo?'Video':isPdf?'PDF':isImage?'Afbeelding':'Bestand';
+    let thumb;
+    if(isImage&&f.dataUrl){thumb='<img class="file-card-thumb" src="'+f.dataUrl+'" alt="'+escHtml(f.naam)+'">';}
+    else{thumb='<div class="file-card-icon">'+icon+'</div>';}
+    let cardTag,cardAttrs;
+    if(f.dataUrl&&(isImage||isVideo)){cardTag='a';cardAttrs='href="#" onclick="event.preventDefault();openPRLocalImage('+i+')"';}
+    else{cardTag='div';cardAttrs='style="cursor:default"';}
+    return '<div class="file-card-wrap">'
+      +'<'+cardTag+' class="file-card" '+cardAttrs+'>'
+      +thumb
+      +'<div class="file-card-info">'
+      +'<div class="file-card-name" title="'+escHtml(f.naam)+'">'+escHtml(f.naam)+'</div>'
+      +'<div class="file-card-type">'+typeLabel+'</div>'
+      +'</div>'
+      +'</'+cardTag+'>'
+      +'<button class="file-card-del" onclick="event.stopPropagation();deletePRFromViewer('+i+')" title="Verwijderen">\u2715</button>'
+      +'</div>';
+  }).join('');
+  document.getElementById('fileViewerGrid').innerHTML=items||'<div class="empty">Geen bestanden</div>';
+  document.getElementById('fileViewerModal').classList.add('open');
+}
+
+function deletePRFromViewer(idx){
+  if(!prCurrentViewerProductId)return;
+  deletePRBestand(prCurrentViewerProductId,idx);
+  const prod=productResearchData.find(p=>p.id===prCurrentViewerProductId);
+  if(!prod||(prod.bestanden||[]).length===0){closeFileViewer();}
+  else{openPRFileViewer(prCurrentViewerProductId);}
+}
+
+function deletePRBestand(productId,idx){
+  const prod=productResearchData.find(p=>p.id===productId);
+  if(!prod)return;
+  prod.bestanden.splice(idx,1);
+  savePR();
+  renderProductResearch();
+}
+
+function openPRLocalImage(idx){
+  const prod=productResearchData.find(p=>p.id===prCurrentViewerProductId);
+  if(!prod||!prod.bestanden[idx]||!prod.bestanden[idx].dataUrl)return;
+  const f=prod.bestanden[idx];
+  const isVideo=f.type&&f.type.startsWith('video/');
+  const w=window.open('','_blank');
+  if(!w){showToast('Pop-up geblokkeerd');return;}
+  if(isVideo){
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'video{max-width:100vw;max-height:100vh}</style></head>'
+      +'<body><video controls autoplay src="'+f.dataUrl+'"></video></body></html>');
+  }else{
+    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+      +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
+      +'<body><img src="'+f.dataUrl+'"></body></html>');
+  }
+  w.document.close();
 }
 
 // =====================
@@ -2024,6 +2129,7 @@ function closeFileViewer(){
   document.getElementById('fileViewerModal').classList.remove('open');
   currentViewerCollectieId=null;
   ptCurrentViewerProductId=null;
+  prCurrentViewerProductId=null;
 }
 
 function openLocalImage(idx){
