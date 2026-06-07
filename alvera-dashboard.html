@@ -1290,7 +1290,8 @@ function renderProductResearch(){
   const th='padding:10px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap;background:var(--white);position:sticky;top:0;z-index:2';
   const td='padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle';
   const numInput=(rid,field,val,ph,w)=>`<input class="comp-input" type="number" value="${escHtml(String(val||''))}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:${w||60}px;text-align:right">`;
-  const urlCell=(rid,field,val,ph)=>`<div style="display:flex;align-items:center;gap:3px"><input class="comp-input" value="${escHtml(val||'')}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:110px;max-width:150px">${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}</div>`;
+  const shortUrlPR=v=>{try{const u=new URL(v);return(u.hostname+u.pathname).replace(/^www\./,'').replace(/\/$/,'').slice(0,28)+(((u.hostname+u.pathname).replace(/^www\./,'').replace(/\/$/,'').length>28)?'…':'');}catch(e){return v.slice(0,28)+(v.length>28?'…':'');}};
+  const urlCell=(rid,field,val,ph)=>`<div style="display:flex;flex-direction:column;gap:2px"><div style="display:flex;align-items:center;gap:3px"><input class="comp-input" value="${escHtml(val||'')}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:110px;max-width:150px">${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}</div>${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:10px;color:var(--muted);text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px" title="${escHtml(val)}">${escHtml(shortUrlPR(val))}</a>`:''}</div>`;
   const rows=productResearchData.map(r=>{
     const adspend=parseFloat(r.adspend)||0;
     const dagen=calcDagenLive(r.dagenLive);
@@ -2243,10 +2244,11 @@ function renderProductTesten(){
     const c=calcProduct(r);
     const s=COLL_STATUS_STYLE[r.status]||COLL_STATUS_STYLE['Gepland'];
     const fc=(r.bestanden||[]).length;
-    const urlCell=(field,val)=>`<div style="display:flex;align-items:center;gap:3px">
+    const shortUrlPT=v=>{try{const u=new URL(v);return(u.hostname+u.pathname).replace(/^www\./,'').replace(/\/$/,'').slice(0,28)+(((u.hostname+u.pathname).replace(/^www\./,'').replace(/\/$/,'').length>28)?'…':'');}catch(e){return v.slice(0,28)+(v.length>28?'…':'');}};
+    const urlCell=(field,val)=>`<div style="display:flex;flex-direction:column;gap:2px"><div style="display:flex;align-items:center;gap:3px">
       <input class="comp-input" value="${escHtml(val||'')}" onchange="updateProductTest(${r.id},'${field}',this.value)" placeholder="https://..." style="min-width:90px;max-width:140px">
       ${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}
-    </div>`;
+    </div>${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:10px;color:var(--muted);text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px" title="${escHtml(val)}">${escHtml(shortUrlPT(val))}</a>`:''}</div>`;
     return`<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 8px 8px 14px">
         <select class="coll-status-sel" style="background:${s.bg};color:${s.color}" onchange="updateProductTest(${r.id},'status',this.value)">
