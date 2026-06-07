@@ -1213,11 +1213,19 @@ function updatePR(id,field,val){
   if(field==='adspend'||field==='dagenLive')updatePRGem(id);
 }
 
+function calcDagenLive(val){
+  if(!val)return 0;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(val))){
+    var s=new Date(val),t=new Date();t.setHours(0,0,0,0);
+    var d=Math.floor((t-s)/86400000);return d>0?d:0;
+  }
+  return parseFloat(val)||0;
+}
 function updatePRGem(id){
   const r=productResearchData.find(r=>r.id===id);
   if(!r)return;
   const adspend=parseFloat(r.adspend)||0;
-  const dagen=parseFloat(r.dagenLive)||0;
+  const dagen=calcDagenLive(r.dagenLive);
   const gem=dagen>0?adspend/dagen:0;
   const el=document.getElementById('pr_gem_'+id);
   if(el)el.textContent=gem>0?'€ '+gem.toFixed(2):'—';
@@ -1284,7 +1292,7 @@ function renderProductResearch(){
   const urlCell=(rid,field,val,ph)=>`<div style="display:flex;align-items:center;gap:3px"><input class="comp-input" value="${escHtml(val||'')}" onchange="updatePR(${rid},'${field}',this.value)" placeholder="${ph}" style="min-width:110px;max-width:150px">${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}</div>`;
   const rows=productResearchData.map(r=>{
     const adspend=parseFloat(r.adspend)||0;
-    const dagen=parseFloat(r.dagenLive)||0;
+    const dagen=calcDagenLive(r.dagenLive);
     const gem=dagen>0?'€ '+(adspend/dagen).toFixed(2):'—';
     const landOpts=allLanden.map(l=>`<option value="${escHtml(l)}" ${r.markt===l?'selected':''}>${escHtml(l)}</option>`).join('');
     const catOpts=ptCategorieen.map(c=>`<option value="${escHtml(c)}" ${r.categorie===c?'selected':''}>${escHtml(c)}</option>`).join('');
@@ -1299,7 +1307,7 @@ function renderProductResearch(){
       <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'vergelijkingsprijs',r.vergelijkingsprijs,'0.00',70)}</div></td>
       <td style="${td}">${urlCell(r.id,'websiteUrl',r.websiteUrl,'https://...')}</td>
       <td style="${td}">${urlCell(r.id,'fbAdUrl',r.fbAdUrl,'https://...')}</td>
-      <td style="${td};text-align:right">${numInput(r.id,'dagenLive',r.dagenLive,'0',60)}</td>
+      <td style="${td}"><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><input type="date" class="comp-input" value="${/^\d{4}-\d{2}-\d{2}$/.test(r.dagenLive||'')?r.dagenLive:''}" onchange="updatePR(${r.id},'dagenLive',this.value)" style="min-width:130px">${dagen>0?'<span style="font-size:10px;color:var(--muted)">'+dagen+'d</span>':''}</div></td>
       <td style="${td}"><div style="display:flex;align-items:center;gap:4px"><span style="color:var(--muted);font-size:11px">€</span>${numInput(r.id,'adspend',r.adspend,'0.00',70)}</div></td>
       <td style="${td};text-align:right;color:var(--muted);font-family:var(--mono);font-size:12px;white-space:nowrap"><span id="pr_gem_${r.id}">${gem}</span></td>
       <td style="${td};text-align:right">${numInput(r.id,'bereik',r.bereik,'0',80)}</td>
