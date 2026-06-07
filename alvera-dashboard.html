@@ -1430,19 +1430,19 @@ function openPRLocalImage(idx){
   if(!prod||!prod.bestanden[idx]||!prod.bestanden[idx].dataUrl)return;
   const f=prod.bestanden[idx];
   const isVideo=f.type&&f.type.startsWith('video/');
+  if(isVideo){
+    const arr=f.dataUrl.split(','),mime=arr[0].match(/:(.*?);/)[1];
+    const bstr=atob(arr[1]),n=bstr.length,u8=new Uint8Array(n);
+    for(let j=0;j<n;j++)u8[j]=bstr.charCodeAt(j);
+    window.open(URL.createObjectURL(new Blob([u8],{type:mime})),'_blank');
+    return;
+  }
   const w=window.open('','_blank');
   if(!w){showToast('Pop-up geblokkeerd');return;}
-  if(isVideo){
-    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
-      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
-      +'video{max-width:100vw;max-height:100vh}</style></head>'
-      +'<body><video controls autoplay src="'+f.dataUrl+'"></video></body></html>');
-  }else{
-    w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
-      +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
-      +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
-      +'<body><img src="'+f.dataUrl+'"></body></html>');
-  }
+  w.document.write('<!DOCTYPE html><html><head><title>'+escHtml(f.naam)+'</title>'
+    +'<style>*{margin:0;padding:0}body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh}'
+    +'img{max-width:100vw;max-height:100vh;object-fit:contain}</style></head>'
+    +'<body><img src="'+f.dataUrl+'"></body></html>');
   w.document.close();
 }
 
