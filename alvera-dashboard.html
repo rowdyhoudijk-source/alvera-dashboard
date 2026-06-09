@@ -697,6 +697,74 @@ function saveCfg(){localStorage.setItem('av2_cfg',JSON.stringify(cfg));}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
 
 // =====================
+// INDEXEDDB FILE STORAGE
+// =====================
+let _idb=null;
+function initIDB(){
+  return new Promise(resolve=>{
+    try{
+      const req=indexedDB.open('alvera_files',1);
+      req.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('files'))e.target.result.createObjectStore('files');};
+      req.onsuccess=e=>{_idb=e.target.result;resolve();};
+      req.onerror=()=>resolve();
+    }catch(e){resolve();}
+  });
+}
+function idbPut(key,value){
+  if(!_idb||!key||!value)return Promise.resolve();
+  return new Promise(resolve=>{try{const tx=_idb.transaction('files','readwrite');tx.objectStore('files').put(value,key);tx.oncomplete=resolve;tx.onerror=resolve;}catch(e){resolve();}});
+}
+function idbGet(key){
+  if(!_idb||!key)return Promise.resolve(null);
+  return new Promise(resolve=>{try{const tx=_idb.transaction('files','readonly');const req=tx.objectStore('files').get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>resolve(null);}catch(e){resolve(null);}});
+}
+function idbDel(key){
+  if(!_idb||!key)return Promise.resolve();
+  return new Promise(resolve=>{try{const tx=_idb.transaction('files','readwrite');tx.objectStore('files').delete(key);tx.oncomplete=resolve;tx.onerror=resolve;}catch(e){resolve();}});
+}
+function genIdbKey(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+// Strip dataUrl from array before localStorage save — dataUrl lives in IDB
+function stripForStorage(arr){
+  return arr.map(item=>{
+    const copy={...item};
+    if(copy.bestanden)copy.bestanden=copy.bestanden.map(b=>{const bc={...b};delete bc.dataUrl;return bc;});
+    return copy;
+  });
+}
+// Migrate legacy dataUrls out of localStorage into IDB
+async function migrateFilesToIDB(){
+  const sets=[
+    {arr:collectiesData,key:'av2_collecties'},
+    {arr:productTestenData,key:'av2_producttesten'},
+    {arr:productResearchData,key:'av2_productresearch'}
+  ];
+  for(const {arr,key} of sets){
+    let changed=false;
+    for(const item of arr){
+      for(const b of(item.bestanden||[])){
+        if(b.dataUrl&&!b.idbKey){
+          b.idbKey=genIdbKey();
+          await idbPut(b.idbKey,b.dataUrl);
+          changed=true;
+        }
+      }
+    }
+    if(changed)localStorage.setItem(key,JSON.stringify(stripForStorage(arr)));
+  }
+}
+// Hydrate dataUrls from IDB back into in-memory arrays
+async function hydrateFilesFromIDB(){
+  const arrs=[collectiesData,productTestenData,productResearchData];
+  for(const arr of arrs){
+    for(const item of arr){
+      for(const b of(item.bestanden||[])){
+        if(b.idbKey&&!b.dataUrl)b.dataUrl=await idbGet(b.idbKey);
+      }
+    }
+  }
+}
+
+// =====================
 // NAVIGATION
 // =====================
 function showPage(page, el){
@@ -1200,7 +1268,7 @@ function renderComp(){
 // =====================
 // PRODUCT RESEARCH
 // =====================
-function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(productResearchData));}
+function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(stripForStorage(productResearchData)));}
 
 function addProductResearch(){
   productResearchData.unshift({id:Date.now(),datumGevonden:'',type:'Collectie',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:'',bestanden:[]});
@@ -1370,8 +1438,9 @@ async function handlePRFileUpload(productId,input){
     if(isImage){try{dataUrl=await resizeImageForStorage(file,800,0.78);}catch(e){}}
     else if(isVideo){try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}catch(e){}}
     const bestand={naam:file.name,type:file.type,dataUrl};
+    if(dataUrl){bestand.idbKey=genIdbKey();idbPut(bestand.idbKey,dataUrl);}
     prod.bestanden.push(bestand);
-    try{savePR();}catch(e){bestand.dataUrl=null;savePR();showToast('\u26a0 Opslag vol');}
+    savePR();
     renderProductResearch();
   }
   if(input.parentNode)input.remove();
@@ -1423,6 +1492,8 @@ function deletePRFromViewer(idx){
 function deletePRBestand(productId,idx){
   const prod=productResearchData.find(p=>p.id===productId);
   if(!prod)return;
+  const b=prod.bestanden[idx];
+  if(b&&b.idbKey)idbDel(b.idbKey);
   prod.bestanden.splice(idx,1);
   savePR();
   renderProductResearch();
@@ -1759,7 +1830,7 @@ async function loadMeta(orders){
 // COLLECTIES
 // =====================
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function saveCollecties(){localStorage.setItem('av2_collecties',JSON.stringify(collectiesData));}
+function saveCollecties(){localStorage.setItem('av2_collecties',JSON.stringify(stripForStorage(collectiesData)));}
 
 function showNewCollectieForm(){
   const f=document.getElementById('newCollectieForm');
@@ -2044,14 +2115,9 @@ async function handleFileUpload(collectieId,input){
       catch(e){console.warn('Video lees fout:',e);}
     }
     const bestand={naam:file.name,type:file.type,dataUrl};
+    if(dataUrl){bestand.idbKey=genIdbKey();idbPut(bestand.idbKey,dataUrl);}
     coll.bestanden.push(bestand);
-    // Sla eerst lokaal op zodat thumbnails direct zichtbaar zijn
-    try{saveCollecties();}catch(e){
-      // localStorage vol: verwijder dataUrl om ruimte vrij te maken
-      bestand.dataUrl=null;
-      saveCollecties();
-      showToast('⚠ Opslag vol — afbeelding niet als thumbnail opgeslagen');
-    }
+    saveCollecties();
     renderCollecties();
 
     // Upload naar Google Drive op de achtergrond (als gekoppeld)
@@ -2156,6 +2222,8 @@ function openCollLocalImage(idx){
 function deleteCollBestand(collectieId,idx){
   const coll=collectiesData.find(c=>c.id===collectieId);
   if(!coll)return;
+  const b=coll.bestanden[idx];
+  if(b&&b.idbKey)idbDel(b.idbKey);
   coll.bestanden.splice(idx,1);
   saveCollecties();
   renderCollecties();
@@ -2164,7 +2232,7 @@ function deleteCollBestand(collectieId,idx){
 // =====================
 // PRODUCT TESTEN
 // =====================
-function saveProductTesten(){localStorage.setItem('av2_producttesten',JSON.stringify(productTestenData));}
+function saveProductTesten(){localStorage.setItem('av2_producttesten',JSON.stringify(stripForStorage(productTestenData)));}
 function saveCategorieen(){localStorage.setItem('av2_pt_categorieen',JSON.stringify(ptCategorieen));}
 
 function addProductTest(){
@@ -2458,8 +2526,9 @@ async function handlePTFileUpload(productId,input){
     if(isImage){try{dataUrl=await resizeImageForStorage(file,800,0.78);}catch(e){}}
     else if(isVideo){try{dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}catch(e){}}
     const bestand={naam:file.name,type:file.type,dataUrl};
+    if(dataUrl){bestand.idbKey=genIdbKey();idbPut(bestand.idbKey,dataUrl);}
     prod.bestanden.push(bestand);
-    try{saveProductTesten();}catch(e){bestand.dataUrl=null;saveProductTesten();showToast('⚠ Opslag vol');}
+    saveProductTesten();
     renderProductTesten();
     if(gdriveToken){
       (async()=>{
@@ -2524,6 +2593,8 @@ function deletePTFromViewer(idx){
 function deletePTBestand(productId,idx){
   const prod=productTestenData.find(p=>p.id===productId);
   if(!prod)return;
+  const b=prod.bestanden[idx];
+  if(b&&b.idbKey)idbDel(b.idbKey);
   prod.bestanden.splice(idx,1);
   saveProductTesten();
   renderProductTesten();
@@ -2602,6 +2673,15 @@ async function findOrCreateDriveFolder(name){
 // =====================
 loadStorage();
 loadComp();
+// Init IndexedDB: migrate legacy localStorage files to IDB, then hydrate dataUrls into memory
+initIDB().then(async()=>{
+  await migrateFilesToIDB();
+  await hydrateFilesFromIDB();
+  // Re-render active page if it shows file thumbnails
+  if(currentPage==='collecties')renderCollecties();
+  else if(currentPage==='producttesten')renderProductTesten();
+  else if(currentPage==='productresearch')renderProductResearch();
+}).catch(()=>{});
 
 // Check OAuth callbacks
 const urlP=new URLSearchParams(window.location.search);
