@@ -1814,9 +1814,10 @@ function calcCollectieAvgs(coll){
 }
 
 const COLL_STATUS_STYLE={
+  'Maken':{bg:'#f3f4f6',color:'#6b7280'},
   'Gepland':{bg:'#dcfce7',color:'#16a34a'},
-  'Getest':{bg:'#fee2e2',color:'#dc2626'},
   'Dag 2 gehaald':{bg:'#fff7ed',color:'#d97706'},
+  'Getest':{bg:'#fee2e2',color:'#dc2626'},
   'Geschaald':{bg:'#dbeafe',color:'#2563eb'}
 };
 
@@ -1835,7 +1836,6 @@ function renderCollecties(){
     const s=COLL_STATUS_STYLE[coll.status]||COLL_STATUS_STYLE['Gepland'];
     const fileCount=(coll.bestanden||[]).length;
     const isOpen=!!coll.expanded;
-    const datumFmt=coll.datum?new Date(coll.datum+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}):'—';
 
     const f=n=>n>0?n.toFixed(2)+'x':'—';
 
@@ -1865,13 +1865,15 @@ function renderCollecties(){
       <div class="coll-header" onclick="toggleCollectie(${coll.id},event)">
         <span class="coll-toggle ${isOpen?'open':''}">▶</span>
         <select class="coll-status-sel" style="background:${s.bg};color:${s.color}" onclick="event.stopPropagation()" onchange="updateCollStatus(${coll.id},this.value)">
+          <option value="Maken" ${coll.status==='Maken'?'selected':''}>Maken</option>
           <option value="Gepland" ${coll.status==='Gepland'?'selected':''}>Gepland</option>
+          <option value="Dag 2 gehaald" ${coll.status==='Dag 2 gehaald'?'selected':''}>Dag 2 gehaald</option>
           <option value="Getest" ${coll.status==='Getest'?'selected':''}>Getest</option>
           <option value="Geschaald" ${coll.status==='Geschaald'?'selected':''}>Geschaald</option>
         </select>
         <span class="coll-name">${escHtml(coll.naam)}</span>
         <span class="coll-sep">|</span>
-        <span class="coll-stat">${datumFmt}</span>
+        <input type="date" class="coll-datum-inp" value="${coll.datum||''}" onclick="event.stopPropagation()" onchange="updateCollDatum(${coll.id},this.value)" style="border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-size:12px;background:var(--white);color:var(--text);cursor:pointer">
         <span class="coll-sep">|</span>
         <span class="coll-stat">gem. marge: <b>${avgs.marge!==0?eur(avgs.marge):'—'}</b></span>
         <span class="coll-sep">|</span>
@@ -1943,6 +1945,13 @@ function updateCollStatus(id,status){
   coll.status=status;
   saveCollecties();
   renderCollecties();
+}
+
+function updateCollDatum(id,val){
+  const coll=collectiesData.find(c=>c.id===id);
+  if(!coll)return;
+  coll.datum=val;
+  saveCollecties();
 }
 
 function addCollProduct(collectieId){
@@ -2299,14 +2308,16 @@ function renderPixelOnderzoek(){
   const el=document.getElementById('pixelOnderzoekContent');
   if(!el)return;
 
-  if(!productTestenData.length){
+  if(!productTestenData.filter(r=>r.status!=='Maken').length){
     el.innerHTML='<div class="card"><div class="empty" style="padding:48px;text-align:center">Geen data — voeg producten toe via Product Testen</div></div>';
     return;
   }
 
   // Groepeer per categorie, gebruik maxStatusRank voor historische telling
+  // Collecties/producten met status 'Maken' tellen niet mee
+  const activePT=productTestenData.filter(r=>r.status!=='Maken');
   const cats={};
-  for(const r of productTestenData){
+  for(const r of activePT){
     const cat=r.categorie||'(geen categorie)';
     if(!cats[cat])cats[cat]={totaal:0,getest:0,dag2:0,geschaald:0};
     cats[cat].totaal++;
@@ -2317,10 +2328,10 @@ function renderPixelOnderzoek(){
   }
 
   const entries=Object.entries(cats).sort((a,b)=>b[1].getest-a[1].getest);
-  const totaal=productTestenData.length;
-  const totGetest=productTestenData.filter(r=>(r.maxStatusRank||0)>=1).length;
-  const totDag2=productTestenData.filter(r=>(r.maxStatusRank||0)>=2).length;
-  const totGeschaald=productTestenData.filter(r=>(r.maxStatusRank||0)>=3).length;
+  const totaal=activePT.length;
+  const totGetest=activePT.filter(r=>(r.maxStatusRank||0)>=1).length;
+  const totDag2=activePT.filter(r=>(r.maxStatusRank||0)>=2).length;
+  const totGeschaald=activePT.filter(r=>(r.maxStatusRank||0)>=3).length;
 
   const pct=(n,d)=>d>0?Math.round(n/d*100)+'%':'—';
   const thStyle='padding:10px 12px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);white-space:nowrap';
