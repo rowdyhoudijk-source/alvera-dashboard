@@ -1219,6 +1219,8 @@ function deleteComp(id){
   renderComp();
 }
 
+const COMP_LAND_COLORS={'France':{bg:'#BFDBFE',color:'#1E40AF'},'Germany':{bg:'#D1D5DB',color:'#374151'},'Italy':{bg:'#BBF7D0',color:'#166534'},'Netherlands':{bg:'#FED7AA',color:'#9A3412'},'United Kingdom':{bg:'#DDD6FE',color:'#5B21B6'},'Spain':{bg:'#FECACA',color:'#991B1B'},'Belgium':{bg:'#FEF08A',color:'#854D0E'},'United States':{bg:'#BAE6FD',color:'#075985'},'Australia':{bg:'#A7F3D0',color:'#065F46'},'Canada':{bg:'#FECDD3',color:'#9F1239'},'Polen':{bg:'#E9D5FF',color:'#6B21A8'}};
+
 function renderComp(){
   const wrap=document.getElementById('compWrap');
   if(!wrap)return;
@@ -1233,9 +1235,10 @@ function renderComp(){
   const urlTd=(id,field,val,ph)=>`<div style="display:flex;flex-direction:column;gap:2px"><div style="display:flex;align-items:center;gap:3px"><input class="comp-input" value="${escHtml(val||'')}" onchange="updateComp(${id},'${field}',this.value)" placeholder="${ph}" style="min-width:110px;max-width:150px">${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:11px;color:var(--green);flex-shrink:0">↗</a>`:''}</div>${val?`<a href="${escHtml(val)}" target="_blank" style="font-size:10px;color:var(--muted);text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px" title="${escHtml(val)}">${escHtml(shortUrl(val))}</a>`:''}</div>`;
   const rows=compData.map(r=>{
     const c=compCls(r.activeAds);
+    const lc=COMP_LAND_COLORS[r.land]||{bg:'var(--bg)',color:'var(--text)'};
     const landOpts=allLanden.map(l=>`<option value="${escHtml(l)}" ${r.land===l?'selected':''}>${escHtml(l)}</option>`).join('');
     return`<tr style="border-bottom:1px solid var(--border)">
-      <td style="${td}"><select class="coll-status-sel" style="background:var(--bg);color:var(--text);min-width:110px;font-weight:500" onchange="if(this.value==='__new__'){addCompLand(this,${r.id})}else{updateComp(${r.id},'land',this.value)}"><option value="">— Land —</option>${landOpts}<option value="__new__">+ Land toevoegen</option></select></td>
+      <td style="${td};background:${lc.bg}"><select class="coll-status-sel" style="background:${lc.bg};color:${lc.color};min-width:110px;font-weight:500" onchange="if(this.value==='__new__'){addCompLand(this,${r.id})}else{updateComp(${r.id},'land',this.value)}"><option value="">— Land —</option>${landOpts}<option value="__new__">+ Land toevoegen</option></select></td>
       <td style="${td}"><input class="comp-input" value="${escHtml(r.storeNaam||'')}" onchange="updateComp(${r.id},'storeNaam',this.value)" placeholder="Store naam" style="min-width:130px"></td>
       <td style="${td}">${urlTd(r.id,'storeUrl',r.storeUrl,'https://...')}</td>
       <td style="${td}"><select class="coll-status-sel" style="background:var(--bg);color:var(--text)" onchange="updateComp(${r.id},'storeType',this.value)"><option ${(r.storeType||'Fashion')==='Fashion'?'selected':''}>Fashion</option><option ${r.storeType==='Schoenen'?'selected':''}>Schoenen</option><option ${r.storeType==='Overig'?'selected':''}>Overig</option></select></td>
