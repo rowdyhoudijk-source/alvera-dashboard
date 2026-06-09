@@ -1070,7 +1070,7 @@ function saveInkoop(){localStorage.setItem('av2_inkoop',JSON.stringify(inkoopDat
 
 function addInkoopRow(){
   const today=new Date().toISOString().slice(0,10);
-  inkoopData.push({datum:today,leverancier:'KungfuBuy',bedrag:''});
+  inkoopData.unshift({datum:today,leverancier:'KungfuBuy',bedrag:''});
   saveInkoop();renderCogs();
 }
 
