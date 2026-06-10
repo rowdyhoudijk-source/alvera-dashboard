@@ -966,7 +966,7 @@ function renderFinance(orders,start,end){
   document.getElementById('kProfit').className='kpi-val '+(profit>=0?'pos':'neg');
   document.getElementById('kMargin').textContent=margin.toFixed(1)+'% marge';
   document.getElementById('kMargin').className='badge '+(margin>=20?'badge-g':margin>0?'badge-o':'badge-r');
-  document.getElementById('kCogs').textContent=eur(totalCogs);
+  document.getElementById('kCogs').textContent=(totalCogs>0?'−':'')+eur(totalCogs);
 
   renderBreakdown(revenue,totalCogs,profit);
   renderRevenueChart(orders,start,end);
