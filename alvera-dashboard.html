@@ -779,7 +779,7 @@ function showPage(page, el){
   document.getElementById('periodWrap').style.display=['finance','orders'].includes(page)?'flex':'none';
   document.getElementById('datePickerRow').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
-  if(page==='finance'&&ordersData.length){const{start,end}=getPeriodDates(currentPeriod);renderFinance(ordersData,start,end);}
+  if(page==='finance'&&ordersData.length){const{start,end}=getPeriodDates(currentPeriod);renderFinance(ordersData,start,end);if(cfg.metaToken)loadMeta(ordersData);}
   if(page==='cogs')renderCogs();
   if(page==='producttesten')renderProductTesten();
   if(page==='collecties')renderCollecties();
