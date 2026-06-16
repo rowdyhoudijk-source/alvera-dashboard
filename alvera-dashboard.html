@@ -677,17 +677,26 @@ let cfg={}, cogsData={}, inkoopData=[], compData=[], advisorRules={}, collecties
 // STORAGE
 // =====================
 function loadStorage(){
+  // Elk veld in zijn eigen try/catch: een corrupte/onleesbare waarde voor één sleutel
+  // mag het laden van de andere sleutels niet blokkeren (anders verdwijnt bv. Collecties
+  // data simpelweg omdat een andere, niet-gerelateerde sleutel een parse-fout geeft).
+  try{const c=localStorage.getItem('av2_cfg'); if(c)cfg=JSON.parse(c);}catch(e){}
+  try{const g=localStorage.getItem('av2_cogs'); if(g)cogsData=JSON.parse(g);}catch(e){}
+  try{const ik=localStorage.getItem('av2_inkoop'); if(ik)inkoopData=JSON.parse(ik);}catch(e){}
+  try{const d=localStorage.getItem('av2_comp'); if(d)compData=JSON.parse(d);}catch(e){}
+  try{const r=localStorage.getItem('av2_rules'); if(r)advisorRules=JSON.parse(r);}catch(e){}
+  // Collecties/Product Testen/Product Research: dit is alleen de snelle eerste-paint waarde
+  // uit localStorage. De definitieve, leidende waarde wordt na initIDB() opgehaald via
+  // syncLegacyArray() — die controleert eerst IndexedDB en valt terug op localStorage.
+  try{const cl=localStorage.getItem('av2_collecties'); if(cl)collectiesData=JSON.parse(cl);}catch(e){}
   try{
-    const c=localStorage.getItem('av2_cfg'); if(c)cfg=JSON.parse(c);
-    const g=localStorage.getItem('av2_cogs'); if(g)cogsData=JSON.parse(g);
-    const ik=localStorage.getItem('av2_inkoop'); if(ik)inkoopData=JSON.parse(ik);
-    const d=localStorage.getItem('av2_comp'); if(d)compData=JSON.parse(d);
-    const r=localStorage.getItem('av2_rules'); if(r)advisorRules=JSON.parse(r);
-    const cl=localStorage.getItem('av2_collecties'); if(cl)collectiesData=JSON.parse(cl);
-    const pt=localStorage.getItem('av2_producttesten'); if(pt)productTestenData=JSON.parse(pt);
+    const pt=localStorage.getItem('av2_producttesten');
+    if(pt)productTestenData=JSON.parse(pt);
     productTestenData.forEach(r=>{if(r.maxStatusRank===undefined)r.maxStatusRank=PT_STATUS_RANK[r.status]||0;});
-    const ptc=localStorage.getItem('av2_pt_categorieen'); if(ptc)ptCategorieen=JSON.parse(ptc);
-    const pr=localStorage.getItem('av2_productresearch'); if(pr)productResearchData=JSON.parse(pr);
+  }catch(e){}
+  try{const ptc=localStorage.getItem('av2_pt_categorieen'); if(ptc)ptCategorieen=JSON.parse(ptc);}catch(e){}
+  try{const pr=localStorage.getItem('av2_productresearch'); if(pr)productResearchData=JSON.parse(pr);}catch(e){}
+  try{
     const gt=localStorage.getItem('av2_gdrive_token');
     const ge=localStorage.getItem('av2_gdrive_expires');
     if(gt&&ge&&Date.now()<parseInt(ge)){gdriveToken=gt;}
@@ -731,40 +740,37 @@ function genIdbKey(){return Date.now().toString(36)+Math.random().toString(36).s
 function idbPutRecord(key,value){return idbPut(key,value,'records');}
 function idbGetRecord(key){return idbGet(key,'records');}
 // =====================
-// MIGRATIE: localStorage (oude sleutels) -> IndexedDB
+// ROBUUSTE OPSLAG: IndexedDB <-> localStorage, dubbele backup + automatisch herstel
 // =====================
-const LEGACY_ARRAY_KEYS=['av2_collecties','av2_producttesten','av2_productresearch'];
-// Eenmalige migratie: als IndexedDB nog geen data heeft voor een sleutel maar localStorage wel
-// (bijv. omdat een eerdere migratie niet goed is gelukt), kopieer die data naar IndexedDB.
-async function migrateLegacyArraysToIDB(){
-  for(const key of LEGACY_ARRAY_KEYS){
+// Voor Collecties/Product Testen/Product Research geldt altijd:
+//  1) Bij laden: eerst IndexedDB proberen, localStorage als fallback.
+//  2) Is een bron leeg/corrupt maar de andere heeft geldige data, herstel de lege/corrupte
+//     bron automatisch (zo blijven beide opslagmedia altijd een volledige backup van elkaar).
+//  3) Bij opslaan (zie saveCollecties/saveProductTesten/savePR): altijd naar BEIDE schrijven.
+// Zo gaat data nooit verloren door een refresh, een corrupte/volle localStorage of een lege IndexedDB.
+async function syncLegacyArray(key,applyFn,postProcessFn){
+  let idbRaw=null,lsRaw=null;
+  try{idbRaw=await idbGetRecord(key);}catch(e){}
+  try{lsRaw=localStorage.getItem(key);}catch(e){}
+
+  let usedRaw=null,parsed=null;
+  // Eerst IndexedDB proberen, dan localStorage als fallback
+  for(const candidate of [idbRaw,lsRaw]){
+    if(!candidate)continue;
     try{
-      const inIdb=await idbGetRecord(key);
-      if(inIdb)continue; // IndexedDB heeft al data voor deze sleutel, niets te migreren
-      const inLs=localStorage.getItem(key);
-      if(inLs)await idbPutRecord(key,inLs);
-    }catch(e){}
+      parsed=JSON.parse(candidate);
+      usedRaw=candidate;
+      break;
+    }catch(e){/* corrupt — probeer de volgende bron */}
   }
-}
-// Laad collecties/producttesten/productresearch uit IndexedDB (leidend na migratie).
-// Staat er niets in IndexedDB, dan blijven de waarden die loadStorage() al uit localStorage
-// las gewoon staan — localStorage blijft dus altijd de fallback.
-async function loadArraysFromIDB(){
-  try{
-    const cl=await idbGetRecord('av2_collecties');
-    if(cl)collectiesData=JSON.parse(cl);
-  }catch(e){}
-  try{
-    const pt=await idbGetRecord('av2_producttesten');
-    if(pt){
-      productTestenData=JSON.parse(pt);
-      productTestenData.forEach(r=>{if(r.maxStatusRank===undefined)r.maxStatusRank=PT_STATUS_RANK[r.status]||0;});
-    }
-  }catch(e){}
-  try{
-    const pr=await idbGetRecord('av2_productresearch');
-    if(pr)productResearchData=JSON.parse(pr);
-  }catch(e){}
+  if(parsed===null)return; // geen geldige data in IndexedDB of localStorage, defaults blijven staan
+
+  applyFn(parsed);
+  if(postProcessFn)postProcessFn(parsed);
+
+  // Herstelcheck: ontbreekt of verschilt de data in één van de twee opslagmedia, schrijf die bij
+  if(idbRaw!==usedRaw||!idbRaw)idbPutRecord(key,usedRaw).catch(()=>{});
+  if(lsRaw!==usedRaw){try{localStorage.setItem(key,usedRaw);}catch(e){}}
 }
 // Strip dataUrl from array before localStorage save — dataUrl lives in IDB
 function stripForStorage(arr){
@@ -2739,14 +2745,15 @@ async function findOrCreateDriveFolder(name){
 // =====================
 loadStorage();
 loadComp();
-// Init IndexedDB: migrate legacy localStorage data (collecties/producttesten/productresearch +
-// file dataUrls) naar IndexedDB, met localStorage als blijvende fallback bij elke save.
+// Init IndexedDB: Collecties/Product Testen/Product Research robuust laden (IndexedDB eerst,
+// localStorage als fallback, automatisch herstel tussen beide) + losse bestand-dataUrls migreren.
 initIDB().then(async()=>{
-  await migrateLegacyArraysToIDB();
-  await loadArraysFromIDB();
+  await syncLegacyArray('av2_collecties',d=>{collectiesData=d;});
+  await syncLegacyArray('av2_producttesten',d=>{productTestenData=d;},d=>{d.forEach(r=>{if(r.maxStatusRank===undefined)r.maxStatusRank=PT_STATUS_RANK[r.status]||0;});});
+  await syncLegacyArray('av2_productresearch',d=>{productResearchData=d;});
   await migrateFilesToIDB();
   await hydrateFilesFromIDB();
-  // Re-render active page if data/file thumbnails changed na migratie
+  // Re-render active page als data/bestand-thumbnails zijn bijgewerkt na de sync
   if(currentPage==='collecties')renderCollecties();
   else if(currentPage==='producttesten')renderProductTesten();
   else if(currentPage==='productresearch')renderProductResearch();
