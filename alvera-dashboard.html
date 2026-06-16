@@ -522,11 +522,11 @@ tbody tr:hover{background:#fafafa}
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:78px;text-align:center">30%</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:78px;text-align:center">40%</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:120px">Datum test</th>
-                  <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:120px">Mijn URL</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:120px">Competitor URL</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:110px">FB Ads</th>
                   <th style="padding:10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:120px">Productpagina</th>
                   <th style="padding:10px 14px 10px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:110px">Bestanden</th>
+                  <th style="border-bottom:2px solid var(--border);width:40px"></th>
                   <th style="border-bottom:2px solid var(--border);width:36px"></th>
                 </tr>
                 </thead>
@@ -2308,11 +2308,15 @@ function saveProductTesten(){
 function saveCategorieen(){localStorage.setItem('av2_pt_categorieen',JSON.stringify(ptCategorieen));}
 
 function addProductTest(){
-  const n=productTestenData.length;
-  const nr='P'+String(n+1).padStart(2,'0');
-  productTestenData.push({id:Date.now(),nr,naam:'',cogs:'',verkoopprijs:'',status:'Gepland',categorie:'',maxStatusRank:0,datum:'',mijnUrl:'',competitorUrl:'',fbAdsUrl:'',productpaginaUrl:'',bestanden:[]});
+  productTestenData.unshift({id:Date.now(),nr:'',naam:'',cogs:'',verkoopprijs:'',status:'Gepland',categorie:'',maxStatusRank:0,datum:'',competitorUrl:'',fbAdsUrl:'',productpaginaUrl:'',bestanden:[]});
+  productTestenData.forEach((r,i)=>{r.nr='P'+String(i+1).padStart(2,'0');});
   saveProductTesten();
   renderProductTesten();
+}
+
+function savePTRow(id){
+  saveProductTesten();
+  showToast('✓ Opgeslagen');
 }
 
 function updateProductTest(id,field,value){
@@ -2424,7 +2428,6 @@ function renderProductTesten(){
       <td style="padding:8px;text-align:center"><span class="badge badge-g">${fmt(c.roas30)}</span></td>
       <td style="padding:8px;text-align:center"><span class="badge badge-g">${fmt(c.roas40)}</span></td>
       <td style="padding:8px"><input class="comp-input" type="date" value="${r.datum||''}" onchange="updateProductTest(${r.id},'datum',this.value)" style="width:115px"></td>
-      <td style="padding:8px">${urlCell('mijnUrl',r.mijnUrl)}</td>
       <td style="padding:8px">${urlCell('competitorUrl',r.competitorUrl)}</td>
       <td style="padding:8px">${urlCell('fbAdsUrl',r.fbAdsUrl)}</td>
       <td style="padding:8px">${urlCell('productpaginaUrl',r.productpaginaUrl)}</td>
@@ -2434,6 +2437,7 @@ function renderProductTesten(){
           ${fc>0?`<button class="btn btn-sm" onclick="openPTFileViewer(${r.id})" style="padding:4px 8px;white-space:nowrap">📂</button>`:''}
         </div>
       </td>
+      <td style="padding:8px"><button onclick="savePTRow(${r.id})" style="background:var(--green);color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer" title="Opslaan">✓</button></td>
       <td style="padding:8px"><button class="btn-red" onclick="deleteProductTest(${r.id})">✕</button></td>
     </tr>`;
   }).join('');
