@@ -703,26 +703,69 @@ let _idb=null;
 function initIDB(){
   return new Promise(resolve=>{
     try{
-      const req=indexedDB.open('alvera_files',1);
-      req.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('files'))e.target.result.createObjectStore('files');};
+      const req=indexedDB.open('alvera_files',2);
+      req.onupgradeneeded=e=>{
+        const db=e.target.result;
+        if(!db.objectStoreNames.contains('files'))db.createObjectStore('files');
+        if(!db.objectStoreNames.contains('records'))db.createObjectStore('records');
+      };
       req.onsuccess=e=>{_idb=e.target.result;resolve();};
       req.onerror=()=>resolve();
     }catch(e){resolve();}
   });
 }
-function idbPut(key,value){
+function idbPut(key,value,store='files'){
   if(!_idb||!key||!value)return Promise.resolve();
-  return new Promise(resolve=>{try{const tx=_idb.transaction('files','readwrite');tx.objectStore('files').put(value,key);tx.oncomplete=resolve;tx.onerror=resolve;}catch(e){resolve();}});
+  return new Promise(resolve=>{try{const tx=_idb.transaction(store,'readwrite');tx.objectStore(store).put(value,key);tx.oncomplete=resolve;tx.onerror=resolve;}catch(e){resolve();}});
 }
-function idbGet(key){
+function idbGet(key,store='files'){
   if(!_idb||!key)return Promise.resolve(null);
-  return new Promise(resolve=>{try{const tx=_idb.transaction('files','readonly');const req=tx.objectStore('files').get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>resolve(null);}catch(e){resolve(null);}});
+  return new Promise(resolve=>{try{const tx=_idb.transaction(store,'readonly');const req=tx.objectStore(store).get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>resolve(null);}catch(e){resolve(null);}});
 }
-function idbDel(key){
+function idbDel(key,store='files'){
   if(!_idb||!key)return Promise.resolve();
-  return new Promise(resolve=>{try{const tx=_idb.transaction('files','readwrite');tx.objectStore('files').delete(key);tx.oncomplete=resolve;tx.onerror=resolve;}catch(e){resolve();}});
+  return new Promise(resolve=>{try{const tx=_idb.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=resolve;tx.onerror=resolve;}catch(e){resolve();}});
 }
 function genIdbKey(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+// Helpers voor de volledige datasets (Collecties/Product Testen/Product Research) in de 'records' store
+function idbPutRecord(key,value){return idbPut(key,value,'records');}
+function idbGetRecord(key){return idbGet(key,'records');}
+// =====================
+// MIGRATIE: localStorage (oude sleutels) -> IndexedDB
+// =====================
+const LEGACY_ARRAY_KEYS=['av2_collecties','av2_producttesten','av2_productresearch'];
+// Eenmalige migratie: als IndexedDB nog geen data heeft voor een sleutel maar localStorage wel
+// (bijv. omdat een eerdere migratie niet goed is gelukt), kopieer die data naar IndexedDB.
+async function migrateLegacyArraysToIDB(){
+  for(const key of LEGACY_ARRAY_KEYS){
+    try{
+      const inIdb=await idbGetRecord(key);
+      if(inIdb)continue; // IndexedDB heeft al data voor deze sleutel, niets te migreren
+      const inLs=localStorage.getItem(key);
+      if(inLs)await idbPutRecord(key,inLs);
+    }catch(e){}
+  }
+}
+// Laad collecties/producttesten/productresearch uit IndexedDB (leidend na migratie).
+// Staat er niets in IndexedDB, dan blijven de waarden die loadStorage() al uit localStorage
+// las gewoon staan — localStorage blijft dus altijd de fallback.
+async function loadArraysFromIDB(){
+  try{
+    const cl=await idbGetRecord('av2_collecties');
+    if(cl)collectiesData=JSON.parse(cl);
+  }catch(e){}
+  try{
+    const pt=await idbGetRecord('av2_producttesten');
+    if(pt){
+      productTestenData=JSON.parse(pt);
+      productTestenData.forEach(r=>{if(r.maxStatusRank===undefined)r.maxStatusRank=PT_STATUS_RANK[r.status]||0;});
+    }
+  }catch(e){}
+  try{
+    const pr=await idbGetRecord('av2_productresearch');
+    if(pr)productResearchData=JSON.parse(pr);
+  }catch(e){}
+}
 // Strip dataUrl from array before localStorage save — dataUrl lives in IDB
 function stripForStorage(arr){
   return arr.map(item=>{
@@ -1272,7 +1315,11 @@ function renderComp(){
 // =====================
 // PRODUCT RESEARCH
 // =====================
-function savePR(){localStorage.setItem('av2_productresearch',JSON.stringify(stripForStorage(productResearchData)));}
+function savePR(){
+  const json=JSON.stringify(stripForStorage(productResearchData));
+  localStorage.setItem('av2_productresearch',json);
+  idbPutRecord('av2_productresearch',json);
+}
 
 function addProductResearch(){
   productResearchData.unshift({id:Date.now(),datumGevonden:'',type:'Collectie',markt:'',productnaam:'',concurrent:'',verkoopprijs:'',vergelijkingsprijs:'',websiteUrl:'',fbAdUrl:'',dagenLive:'',adspend:'',bereik:'',categorie:'',status:'Interessant',notities:'',bestanden:[]});
@@ -1841,7 +1888,11 @@ async function loadMeta(orders){
 // COLLECTIES
 // =====================
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function saveCollecties(){localStorage.setItem('av2_collecties',JSON.stringify(stripForStorage(collectiesData)));}
+function saveCollecties(){
+  const json=JSON.stringify(stripForStorage(collectiesData));
+  localStorage.setItem('av2_collecties',json);
+  idbPutRecord('av2_collecties',json);
+}
 
 function showNewCollectieForm(){
   const f=document.getElementById('newCollectieForm');
@@ -2243,7 +2294,11 @@ function deleteCollBestand(collectieId,idx){
 // =====================
 // PRODUCT TESTEN
 // =====================
-function saveProductTesten(){localStorage.setItem('av2_producttesten',JSON.stringify(stripForStorage(productTestenData)));}
+function saveProductTesten(){
+  const json=JSON.stringify(stripForStorage(productTestenData));
+  localStorage.setItem('av2_producttesten',json);
+  idbPutRecord('av2_producttesten',json);
+}
 function saveCategorieen(){localStorage.setItem('av2_pt_categorieen',JSON.stringify(ptCategorieen));}
 
 function addProductTest(){
@@ -2684,11 +2739,14 @@ async function findOrCreateDriveFolder(name){
 // =====================
 loadStorage();
 loadComp();
-// Init IndexedDB: migrate legacy localStorage files to IDB, then hydrate dataUrls into memory
+// Init IndexedDB: migrate legacy localStorage data (collecties/producttesten/productresearch +
+// file dataUrls) naar IndexedDB, met localStorage als blijvende fallback bij elke save.
 initIDB().then(async()=>{
+  await migrateLegacyArraysToIDB();
+  await loadArraysFromIDB();
   await migrateFilesToIDB();
   await hydrateFilesFromIDB();
-  // Re-render active page if it shows file thumbnails
+  // Re-render active page if data/file thumbnails changed na migratie
   if(currentPage==='collecties')renderCollecties();
   else if(currentPage==='producttesten')renderProductTesten();
   else if(currentPage==='productresearch')renderProductResearch();
